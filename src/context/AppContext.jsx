@@ -1,76 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { 
-  Group, Member, Expense, Settlement, RecurringRule, Dispute, GroupMessage, 
-  ActivityLog, SimplifiedDebtResult 
-} from '../types';
-import { calculateGroupDebts } from '../utils/debtSimplification';
-import { getSocket } from '../lib/socket';
+import { calculateGroupDebts } from '../utils/debtSimplification.js';
+import { getSocket } from '../lib/socket.js';
 
-interface Toast {
-  id: string;
-  type: 'success' | 'info' | 'error';
-  message: string;
-}
+const AppContext = createContext(undefined);
 
-interface AppContextType {
-  members: Member[];
-  currentUser: Member;
-  setCurrentUser: (member: Member) => void;
-  groups: Group[];
-  activeGroup: Group | null;
-  setActiveGroup: (group: Group) => void;
-  expenses: Expense[];
-  settlements: Settlement[];
-  recurringRules: RecurringRule[];
-  disputes: Dispute[];
-  messages: GroupMessage[];
-  chatMessages: GroupMessage[];
-  activityLogs: ActivityLog[];
-  debtResult: SimplifiedDebtResult;
-  loading: boolean;
-  isLoading: boolean;
-  toasts: Toast[];
-  addToast: (message: string, type?: 'success' | 'info' | 'error') => void;
-  removeToast: (id: string) => void;
-  
-  // Actions
-  fetchGroupData: (groupId: string) => Promise<void>;
-  createGroup: (groupData: Partial<Group> & { memberIds: string[] }) => Promise<Group | null>;
-  joinGroup: (inviteCode: string) => Promise<boolean>;
-  addExpense: (expenseData: Partial<Expense>) => Promise<Expense | null>;
-  deleteExpense: (expenseId: string) => Promise<boolean>;
-  addSettlement: (settlementData: Partial<Settlement>) => Promise<Settlement | null>;
-  addRecurringRule: (ruleData: Partial<RecurringRule>) => Promise<RecurringRule | null>;
-  triggerRecurringRule: (ruleId: string) => Promise<boolean>;
-  createDispute: (expenseId: string, reason: string, proposedChanges?: string) => Promise<Dispute | null>;
-  resolveDispute: (disputeId: string, status: 'approved' | 'rejected', updatedSplits?: any[]) => Promise<boolean>;
-  addDisputeComment: (disputeId: string, text: string) => Promise<boolean>;
-  sendMessage: (text: string, type?: 'text' | 'voice' | 'system' | 'expense_action', extra?: { linkedExpenseId?: string; audioDuration?: number }) => Promise<GroupMessage | null>;
-  
-  // Modal Triggers
-  isExpenseModalOpen: boolean;
-  setIsExpenseModalOpen: (open: boolean) => void;
-  isVoiceModalOpen: boolean;
-  setIsVoiceModalOpen: (open: boolean) => void;
-  isReceiptModalOpen: boolean;
-  setIsReceiptModalOpen: (open: boolean) => void;
-  isSettleModalOpen: boolean;
-  setIsSettleModalOpen: (open: boolean) => void;
-  settleTarget: { toMemberId?: string; amount?: number } | null;
-  openSettleModal: (toMemberId?: string, amount?: number) => void;
-  isReminderModalOpen: boolean;
-  setIsReminderModalOpen: (open: boolean) => void;
-  reminderTarget: { debtorId: string; amount: number } | null;
-  openReminderModal: (debtorId: string, amount: number) => void;
-  isNewGroupModalOpen: boolean;
-  setIsNewGroupModalOpen: (open: boolean) => void;
-}
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [currentUser, setCurrentUser] = useState<Member>({
+export const AppProvider = ({ children }) => {
+  const [members, setMembers] = useState([]);
+  const [currentUser, setCurrentUser] = useState({
     id: 'usr_alex',
     name: 'Alex Rivera',
     email: 'alex@example.com',
@@ -81,28 +17,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     color: '#3B82F6',
   });
   
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [activeGroup, setActiveGroup] = useState<Group | null>(null);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [settlements, setSettlements] = useState<Settlement[]>([]);
-  const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
-  const [disputes, setDisputes] = useState<Dispute[]>([]);
-  const [messages, setMessages] = useState<GroupMessage[]>([]);
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [groups, setGroups] = useState([]);
+  const [activeGroup, setActiveGroup] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [settlements, setSettlements] = useState([]);
+  const [recurringRules, setRecurringRules] = useState([]);
+  const [disputes, setDisputes] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toasts, setToasts] = useState([]);
 
   // Modals state
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
-  const [settleTarget, setSettleTarget] = useState<{ toMemberId?: string; amount?: number } | null>(null);
+  const [settleTarget, setSettleTarget] = useState(null);
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
-  const [reminderTarget, setReminderTarget] = useState<{ debtorId: string; amount: number } | null>(null);
+  const [reminderTarget, setReminderTarget] = useState(null);
   const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
 
-  const addToast = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => {
+  const addToast = useCallback((message, type = 'success') => {
     const id = `t_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`;
     setToasts(prev => [...prev, { id, type, message }]);
     setTimeout(() => {
@@ -110,7 +46,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 4000);
   }, []);
 
-  const removeToast = useCallback((id: string) => {
+  const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
@@ -145,7 +81,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [addToast]);
 
   // Fetch data for the active group
-  const fetchGroupData = useCallback(async (groupId: string) => {
+  const fetchGroupData = useCallback(async (groupId) => {
     try {
       const [expRes, setRes, recRes, dispRes, msgRes, actRes] = await Promise.all([
         fetch(`/api/groups/${groupId}/expenses`),
@@ -183,14 +119,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     socket.emit('join_group', activeGroup.id);
 
-    const handleNewMessage = (newMsg: GroupMessage) => {
+    const handleNewMessage = (newMsg) => {
       setMessages(prev => {
         if (prev.some(m => m.id === newMsg.id)) return prev;
         return [...prev, newMsg];
       });
     };
 
-    const handleExpenseAdded = (newExp: Expense) => {
+    const handleExpenseAdded = (newExp) => {
       setExpenses(prev => {
         if (prev.some(e => e.id === newExp.id)) return prev;
         return [newExp, ...prev];
@@ -198,17 +134,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       fetchGroupData(activeGroup.id);
     };
 
-    const handleExpenseUpdated = (updatedExp: Expense) => {
+    const handleExpenseUpdated = (updatedExp) => {
       setExpenses(prev => prev.map(e => e.id === updatedExp.id ? updatedExp : e));
       fetchGroupData(activeGroup.id);
     };
 
-    const handleExpenseDeleted = ({ id }: { id: string }) => {
+    const handleExpenseDeleted = ({ id }) => {
       setExpenses(prev => prev.filter(e => e.id !== id));
       fetchGroupData(activeGroup.id);
     };
 
-    const handleSettlementRecorded = (newStl: Settlement) => {
+    const handleSettlementRecorded = (newStl) => {
       setSettlements(prev => {
         if (prev.some(s => s.id === newStl.id)) return prev;
         return [newStl, ...prev];
@@ -256,7 +192,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   );
 
   // Group creation
-  const createGroup = async (groupData: Partial<Group> & { memberIds: string[] }): Promise<Group | null> => {
+  const createGroup = async (groupData) => {
     try {
       const res = await fetch('/api/groups', {
         method: 'POST',
@@ -267,7 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (data.group) {
         setGroups(prev => [data.group, ...prev]);
         setActiveGroup(data.group);
-        addToast(`Group "${data.group.name}" created in PostgreSQL!`);
+        addToast(`Group "${data.group.name}" created!`);
         return data.group;
       }
       return null;
@@ -279,7 +215,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Join group via code
-  const joinGroup = async (inviteCode: string): Promise<boolean> => {
+  const joinGroup = async (inviteCode) => {
     try {
       const res = await fetch('/api/groups/join', {
         method: 'POST',
@@ -307,7 +243,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Add Expense
-  const addExpense = async (expenseData: Partial<Expense>): Promise<Expense | null> => {
+  const addExpense = async (expenseData) => {
     if (!activeGroup) return null;
     try {
       const res = await fetch(`/api/groups/${activeGroup.id}/expenses`, {
@@ -321,7 +257,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (prev.some(e => e.id === data.expense.id)) return prev;
           return [data.expense, ...prev];
         });
-        addToast(`Expense "${data.expense.title}" saved to PostgreSQL ($${data.expense.amount.toFixed(2)})`);
+        addToast(`Expense "${data.expense.title}" saved ($${data.expense.amount.toFixed(2)})`);
         fetchGroupData(activeGroup.id);
         return data.expense;
       }
@@ -334,7 +270,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Delete Expense
-  const deleteExpense = async (expenseId: string): Promise<boolean> => {
+  const deleteExpense = async (expenseId) => {
     if (!activeGroup) return false;
     try {
       const res = await fetch(`/api/groups/${activeGroup.id}/expenses/${expenseId}`, {
@@ -353,7 +289,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Add Settlement
-  const addSettlement = async (settlementData: Partial<Settlement>): Promise<Settlement | null> => {
+  const addSettlement = async (settlementData) => {
     if (!activeGroup) return null;
     try {
       const res = await fetch(`/api/groups/${activeGroup.id}/settlements`, {
@@ -367,7 +303,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (prev.some(s => s.id === data.settlement.id)) return prev;
           return [data.settlement, ...prev];
         });
-        addToast(`Settlement of $${data.settlement.amount.toFixed(2)} recorded in PostgreSQL!`);
+        addToast(`Settlement of $${data.settlement.amount.toFixed(2)} recorded!`);
         fetchGroupData(activeGroup.id);
         return data.settlement;
       }
@@ -380,7 +316,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Recurring rules
-  const addRecurringRule = async (ruleData: Partial<RecurringRule>): Promise<RecurringRule | null> => {
+  const addRecurringRule = async (ruleData) => {
     if (!activeGroup) return null;
     try {
       const res = await fetch(`/api/groups/${activeGroup.id}/recurring`, {
@@ -402,7 +338,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const triggerRecurringRule = async (ruleId: string): Promise<boolean> => {
+  const triggerRecurringRule = async (ruleId) => {
     if (!activeGroup) return false;
     try {
       const res = await fetch(`/api/groups/${activeGroup.id}/recurring/${ruleId}/trigger`, {
@@ -422,7 +358,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Disputes
-  const createDispute = async (expenseId: string, reason: string, proposedChanges?: string): Promise<Dispute | null> => {
+  const createDispute = async (expenseId, reason, proposedChanges) => {
     if (!activeGroup) return null;
     try {
       const res = await fetch(`/api/groups/${activeGroup.id}/disputes`, {
@@ -445,7 +381,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const resolveDispute = async (disputeId: string, status: 'approved' | 'rejected', updatedSplits?: any[]): Promise<boolean> => {
+  const resolveDispute = async (disputeId, status, updatedSplits) => {
     if (!activeGroup) return false;
     try {
       const res = await fetch(`/api/groups/${activeGroup.id}/disputes/${disputeId}/resolve`, {
@@ -469,7 +405,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const addDisputeComment = async (disputeId: string, text: string): Promise<boolean> => {
+  const addDisputeComment = async (disputeId, text) => {
     if (!activeGroup) return false;
     try {
       const res = await fetch(`/api/groups/${activeGroup.id}/disputes/${disputeId}/comments`, {
@@ -490,11 +426,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Group Messages
-  const sendMessage = async (
-    text: string, 
-    type: 'text' | 'voice' | 'system' | 'expense_action' = 'text', 
-    extra?: { linkedExpenseId?: string; audioDuration?: number }
-  ): Promise<GroupMessage | null> => {
+  const sendMessage = async (text, type = 'text', extra) => {
     if (!activeGroup) return null;
     try {
       const payload = {
@@ -525,12 +457,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const openSettleModal = (toMemberId?: string, amount?: number) => {
+  const openSettleModal = (toMemberId, amount) => {
     setSettleTarget({ toMemberId, amount });
     setIsSettleModalOpen(true);
   };
 
-  const openReminderModal = (debtorId: string, amount: number) => {
+  const openReminderModal = (debtorId, amount) => {
     setReminderTarget({ debtorId, amount });
     setIsReminderModalOpen(true);
   };

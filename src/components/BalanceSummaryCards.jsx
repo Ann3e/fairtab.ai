@@ -1,21 +1,19 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
-import { formatCurrency } from '../utils/debtSimplification';
+import { useApp } from '../context/AppContext.jsx';
+import { formatCurrency } from '../utils/debtSimplification.js';
 import { 
   TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, 
-  Copy, Share2, DollarSign, Wallet, ShieldAlert, Sparkles 
+  Copy, Wallet, ShieldAlert, Sparkles 
 } from 'lucide-react';
 
-export const BalanceSummaryCards: React.FC = () => {
+export const BalanceSummaryCards = () => {
   const { 
     activeGroup, 
     currentUser, 
     debtResult, 
     expenses, 
     openSettleModal, 
-    addToast,
-    setIsReceiptModalOpen,
-    setIsVoiceModalOpen
+    addToast
   } = useApp();
 
   if (!activeGroup) return null;
@@ -133,7 +131,7 @@ export const BalanceSummaryCards: React.FC = () => {
               Total Group Spend
             </span>
             <span className="text-xs text-indigo-400 bg-indigo-950/60 border border-indigo-500/30 px-2 py-0.5 rounded-full font-medium">
-              {expenses.length} Expenses
+              {expenses ? expenses.length : 0} Expenses
             </span>
           </div>
           <div className="text-3xl font-extrabold text-white mb-2">

@@ -1,29 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
-import { formatCurrency } from '../utils/debtSimplification';
+import { useApp } from '../context/AppContext.jsx';
+import { formatCurrency } from '../utils/debtSimplification.js';
 import { 
-  Sparkles, TrendingUp, DollarSign, PieChart, ShieldAlert, 
-  Lightbulb, RefreshCw, Award, ArrowUpRight, CheckCircle2 
+  Sparkles, TrendingUp, PieChart, 
+  Lightbulb, RefreshCw, Award, CheckCircle2 
 } from 'lucide-react';
 
-export const AIInsightsView: React.FC = () => {
-  const { activeGroup, expenses, debtResult, members, addToast } = useApp();
+export const AIInsightsView = () => {
+  const { activeGroup, expenses, debtResult, addToast } = useApp();
 
-  const [insights, setInsights] = useState<{
-    summary: string;
-    keyObservations: string[];
-    savingsTips: string[];
-    topSpenders: { name: string; amount: number }[];
-    categoryBreakdown: { category: string; amount: number; percentage: number }[];
-  } | null>(null);
-
+  const [insights, setInsights] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (activeGroup && expenses.length > 0) {
-      loadInsights();
-    }
-  }, [activeGroup?.id, expenses.length]);
 
   const loadInsights = async () => {
     if (!activeGroup) return;
@@ -52,14 +39,20 @@ export const AIInsightsView: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (activeGroup && expenses && expenses.length > 0) {
+      loadInsights();
+    }
+  }, [activeGroup?.id, expenses?.length]);
+
   if (!activeGroup) return null;
 
   const currency = activeGroup.currency || 'USD';
-  const totalSpend = debtResult.totalGroupSpend;
+  const totalSpend = debtResult?.totalGroupSpend || 0;
 
   // Calculate local category breakdown for instant visuals
-  const categoryTotals: Record<string, number> = {};
-  expenses.forEach(e => {
+  const categoryTotals = {};
+  (expenses || []).forEach(e => {
     categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
   });
 

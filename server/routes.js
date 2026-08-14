@@ -323,8 +323,8 @@ apiRouter.post('/ai/generate-reminder', async (req, res) => {
 
 apiRouter.post('/ai/spending-insights', async (req, res) => {
   try {
-    const { groupId } = req.body;
-    const insights = await generateSpendingInsights(groupId);
+    const { groupId, expenses, groupName, members } = req.body;
+    const insights = await generateSpendingInsights(groupId, expenses, groupName, members);
     res.json({ insights });
   } catch (error) {
     console.error('Spending insights error:', error);

@@ -206,9 +206,19 @@ The message should be ready to send via WhatsApp or SMS. Keep it punchy, natural
   return response.text?.trim() || `Hey ${debtorName}, reminder for ${formattedAmount} for ${groupName}!`;
 }
 
-export async function generateSpendingInsights(groupId) {
+export async function generateSpendingInsights(
+  groupId,
+  passedExpenses,
+  passedGroupName,
+  passedMembers
+) {
   const group = groups.find(g => g.id === groupId) || groups[0];
-  const groupExpenses = expenses.filter(e => e.groupId === group.id);
+  const groupExpenses = (passedExpenses && passedExpenses.length > 0)
+    ? passedExpenses 
+    : expenses.filter(e => e.groupId === (groupId || group.id));
+  const groupName = passedGroupName || group.name;
+  const groupMembers = (passedMembers && passedMembers.length > 0) ? passedMembers : group.members;
+  const budgetLimit = group.budgetLimit || 3000;
 
   const totalSpend = groupExpenses.reduce((acc, e) => acc + e.amount, 0);
   const categoryTotals = {};
@@ -224,16 +234,16 @@ export async function generateSpendingInsights(groupId) {
       summary: `The group has recorded ${groupExpenses.length} shared expenses totaling $${totalSpend.toFixed(2)}. Spending is currently dominated by ${topCategory}.`,
       topSpendingCategory: topCategory,
       burnRatePerDay: Math.round(totalSpend / 7),
-      spendingVelocityComment: totalSpend > (group.budgetLimit || 3000) * 0.8 
+      spendingVelocityComment: totalSpend > budgetLimit * 0.8 
         ? 'Approaching budget ceiling. Keep an eye on dining & nightlife.' 
         : 'Pacing healthily within expected limits.',
-      memberInsights: group.members.map((m, idx) => ({
+      memberInsights: groupMembers.map((m, idx) => ({
         memberId: m.id,
         badge: idx === 0 ? '🏆 Primary Payer' : idx === 1 ? '⚡ Instant Settler' : '🎯 Itemized Pro',
         observation: `${m.name} contributes actively to group utility and cabin expenses.`,
       })),
-      budgetHealth: totalSpend > (group.budgetLimit || 3000) ? 'critical' : totalSpend > (group.budgetLimit || 3000) * 0.75 ? 'warning' : 'safe',
-      budgetAlertMessage: group.budgetLimit ? `Group spent $${totalSpend.toFixed(2)} of $${group.budgetLimit.toFixed(2)} budget cap.` : undefined,
+      budgetHealth: totalSpend > budgetLimit ? 'critical' : totalSpend > budgetLimit * 0.75 ? 'warning' : 'safe',
+      budgetAlertMessage: budgetLimit ? `Group spent $${totalSpend.toFixed(2)} of $${budgetLimit.toFixed(2)} budget cap.` : undefined,
       recommendations: [
         'Consolidate multiple small convenience store runs into a single bulk grocery haul to save ~12%.',
         'Settle active balances weekly using UPI / Instant Pay to avoid end-of-trip settlement bottleneck.',
@@ -244,12 +254,12 @@ export async function generateSpendingInsights(groupId) {
 
   const expenseSummary = groupExpenses.map(e => `${e.title}: $${e.amount} (${e.category}) paid by ${e.paidById}`).join('\n');
 
-  const prompt = `Analyze the spending data for group "${group.name}" with budget limit $${group.budgetLimit || 'N/A'}.
+  const prompt = `Analyze the spending data for group "${groupName}" with budget limit $${budgetLimit || 'N/A'}.
 Total spend: $${totalSpend}
 Expenses list:
 ${expenseSummary}
 
-Members: ${group.members.map(m => `${m.name} (${m.id})`).join(', ')}
+Members: ${groupMembers.map(m => `${m.name} (${m.id})`).join(', ')}
 
 Return a structured JSON with:
 1. summary: high-level financial summary

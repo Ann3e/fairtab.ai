@@ -1,40 +1,36 @@
 import React, { useState } from 'react';
-import { AppProvider, useApp } from './context/AppContext';
-import { Navbar } from './components/Navbar';
-import { BalanceSummaryCards } from './components/BalanceSummaryCards';
-import { ExpenseList } from './components/ExpenseList';
-import { DebtSimplificationView } from './components/DebtSimplificationView';
-import { RecurringExpensesView } from './components/RecurringExpensesView';
-import { DisputesView } from './components/DisputesView';
-import { GroupChatView } from './components/GroupChatView';
-import { AIInsightsView } from './components/AIInsightsView';
-import { ExpenseModal } from './components/ExpenseModal';
-import { VoiceLoggerModal } from './components/VoiceLoggerModal';
-import { ReceiptScannerModal } from './components/ReceiptScannerModal';
-import { SettleUpModal } from './components/SettleUpModal';
-import { SmartReminderModal } from './components/SmartReminderModal';
-import { NewGroupModal } from './components/NewGroupModal';
-import { ToastContainer } from './components/ToastContainer';
+import { AppProvider, useApp } from './context/AppContext.jsx';
+import { Navbar } from './components/Navbar.jsx';
+import { BalanceSummaryCards } from './components/BalanceSummaryCards.jsx';
+import { ExpenseList } from './components/ExpenseList.jsx';
+import { DebtSimplificationView } from './components/DebtSimplificationView.jsx';
+import { RecurringExpensesView } from './components/RecurringExpensesView.jsx';
+import { DisputesView } from './components/DisputesView.jsx';
+import { GroupChatView } from './components/GroupChatView.jsx';
+import { AIInsightsView } from './components/AIInsightsView.jsx';
+import { ExpenseModal } from './components/ExpenseModal.jsx';
+import { VoiceLoggerModal } from './components/VoiceLoggerModal.jsx';
+import { ReceiptScannerModal } from './components/ReceiptScannerModal.jsx';
+import { SettleUpModal } from './components/SettleUpModal.jsx';
+import { SmartReminderModal } from './components/SmartReminderModal.jsx';
+import { NewGroupModal } from './components/NewGroupModal.jsx';
+import { ToastContainer } from './components/ToastContainer.jsx';
 import { 
   Receipt, Zap, Repeat, MessageSquareWarning, 
-  MessageSquare, Sparkles, Plus, Mic, ShieldAlert, Loader2 
+  MessageSquare, Sparkles, Loader2 
 } from 'lucide-react';
 
-const MainContent: React.FC = () => {
+const MainContent = () => {
   const { 
     activeGroup, 
     isLoading, 
     disputes, 
     expenses, 
     messages,
-    debtResult,
-    setIsExpenseModalOpen,
-    setIsVoiceModalOpen,
-    setIsReceiptModalOpen,
-    setIsNewGroupModalOpen 
+    debtResult
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'expenses' | 'debts' | 'recurring' | 'disputes' | 'chat' | 'insights'>('expenses');
+  const [activeTab, setActiveTab] = useState('expenses');
 
   if (isLoading && !activeGroup) {
     return (
@@ -45,7 +41,7 @@ const MainContent: React.FC = () => {
     );
   }
 
-  const openDisputesCount = disputes.filter(d => d.status === 'open').length;
+  const openDisputesCount = disputes ? disputes.filter(d => d.status === 'open').length : 0;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
@@ -70,7 +66,7 @@ const MainContent: React.FC = () => {
             <Receipt className="w-4 h-4" />
             <span>Expenses & Ledger</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 opacity-80">
-              {expenses.length}
+              {expenses ? expenses.length : 0}
             </span>
           </button>
 
@@ -85,7 +81,7 @@ const MainContent: React.FC = () => {
             <Zap className="w-4 h-4 text-emerald-400" />
             <span>Debt Simplification & Settle</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 text-emerald-400 font-mono">
-              {debtResult.simplifiedDebts.length}
+              {debtResult?.simplifiedDebts ? debtResult.simplifiedDebts.length : 0}
             </span>
           </button>
 
@@ -128,7 +124,7 @@ const MainContent: React.FC = () => {
           >
             <MessageSquare className="w-4 h-4" />
             <span>Group Chat & Activity</span>
-            {messages.length > 0 && (
+            {messages && messages.length > 0 && (
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 opacity-80">
                 {messages.length}
               </span>

@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { formatCurrency } from '../utils/debtSimplification';
+import { useApp } from '../context/AppContext.jsx';
+import { formatCurrency } from '../utils/debtSimplification.js';
 import { 
-  ArrowRight, Sparkles, Zap, Bell, Wallet, CheckCircle, 
-  RotateCcw, ShieldCheck, HelpCircle, ArrowUpRight, ArrowDownLeft 
+  ArrowRight, Sparkles, Zap, Bell, Wallet, CheckCircle 
 } from 'lucide-react';
 
-export const DebtSimplificationView: React.FC = () => {
+export const DebtSimplificationView = () => {
   const { 
     debtResult, 
     activeGroup, 
@@ -249,7 +248,7 @@ export const DebtSimplificationView: React.FC = () => {
       </div>
 
       {/* 4. Settlement History Ledger */}
-      {settlements.length > 0 && (
+      {settlements && settlements.length > 0 && (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
           <h4 className="text-sm font-bold text-slate-200 mb-1 flex items-center gap-1.5">
             <CheckCircle className="w-4 h-4 text-emerald-400" />

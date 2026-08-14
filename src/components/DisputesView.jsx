@@ -1,34 +1,31 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { formatCurrency } from '../utils/debtSimplification';
+import { useApp } from '../context/AppContext.jsx';
+import { formatCurrency } from '../utils/debtSimplification.js';
 import { 
-  MessageSquareWarning, CheckCircle, XCircle, MessageCircle, 
-  Send, ShieldCheck, AlertCircle, ArrowRight, UserCheck 
+  MessageSquareWarning, CheckCircle, Send 
 } from 'lucide-react';
 
-export const DisputesView: React.FC = () => {
+export const DisputesView = () => {
   const { 
     disputes, 
     expenses, 
     members, 
-    currentUser, 
     activeGroup, 
     resolveDispute, 
-    addDisputeComment, 
-    addToast 
+    addDisputeComment
   } = useApp();
 
-  const [commentText, setCommentText] = useState<Record<string, string>>({});
+  const [commentText, setCommentText] = useState({});
 
   if (!activeGroup) return null;
 
   const currency = activeGroup.currency || 'USD';
-  const groupDisputes = disputes.filter(d => {
+  const groupDisputes = (disputes || []).filter(d => {
     const exp = expenses.find(e => e.id === d.expenseId);
     return exp !== undefined;
   });
 
-  const handleSendComment = (disputeId: string) => {
+  const handleSendComment = (disputeId) => {
     const text = commentText[disputeId];
     if (!text || !text.trim()) return;
     addDisputeComment(disputeId, text.trim());
@@ -65,8 +62,8 @@ export const DisputesView: React.FC = () => {
         <div className="space-y-4">
           {groupDisputes.map(dispute => {
             const exp = expenses.find(e => e.id === dispute.expenseId);
-            const creator = members.find(m => m.id === dispute.createdById);
-            const isResolved = dispute.status === 'resolved';
+            const creator = members.find(m => m.id === dispute.createdById || m.id === dispute.raisedById);
+            const isResolved = dispute.status === 'resolved' || dispute.status === 'approved' || dispute.status === 'dismissed';
 
             return (
               <div
@@ -82,7 +79,7 @@ export const DisputesView: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <img src={creator?.avatar} alt={creator?.name} className="w-7 h-7 rounded-full object-cover" />
                     <div>
-                      <span className="text-xs font-bold text-white">{creator?.name}</span>
+                      <span className="text-xs font-bold text-white">{creator?.name || 'Member'}</span>
                       <span className="text-xs text-slate-400 ml-1.5">questioned expense</span>
                       <span className="text-xs font-semibold text-indigo-300 ml-1.5">
                         "{exp?.title || 'Unknown'}" ({formatCurrency(exp?.amount || 0, currency)})
@@ -106,10 +103,10 @@ export const DisputesView: React.FC = () => {
                     <p className="text-slate-200">{dispute.reason}</p>
                   </div>
 
-                  {dispute.proposedAdjustment && (
+                  {dispute.proposedChanges && (
                     <div className="bg-indigo-950/30 p-2.5 rounded-xl border border-indigo-500/30 flex items-center gap-2">
                       <span className="font-bold text-indigo-300 shrink-0">Proposal:</span>
-                      <span className="text-slate-200">{dispute.proposedAdjustment}</span>
+                      <span className="text-slate-200">{dispute.proposedChanges}</span>
                     </div>
                   )}
                 </div>
@@ -119,12 +116,12 @@ export const DisputesView: React.FC = () => {
                   <div className="my-2 space-y-1.5 pt-2 border-t border-slate-800">
                     <p className="text-[11px] font-semibold text-slate-400">Discussion:</p>
                     {dispute.comments.map(c => {
-                      const author = members.find(m => m.id === c.authorId);
+                      const author = members.find(m => m.id === c.authorId || m.id === c.memberId);
                       return (
-                        <div key={c.id} className="flex items-start gap-2 bg-slate-900/50 p-2 rounded-xl text-xs">
+                        <div key={c.id || c.timestamp} className="flex items-start gap-2 bg-slate-900/50 p-2 rounded-xl text-xs">
                           <img src={author?.avatar} alt={author?.name} className="w-5 h-5 rounded-full object-cover shrink-0 mt-0.5" />
                           <div>
-                            <span className="font-semibold text-slate-200 mr-1.5">{author?.name}:</span>
+                            <span className="font-semibold text-slate-200 mr-1.5">{author?.name || 'Member'}:</span>
                             <span className="text-slate-300">{c.text}</span>
                           </div>
                         </div>
@@ -155,14 +152,14 @@ export const DisputesView: React.FC = () => {
 
                     <div className="flex justify-end gap-2 pt-1">
                       <button
-                        onClick={() => resolveDispute(dispute.id, 'dismissed', 'Dispute dismissed after member review')}
+                        onClick={() => resolveDispute(dispute.id, 'rejected')}
                         className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
                       >
                         Dismiss Dispute
                       </button>
 
                       <button
-                        onClick={() => resolveDispute(dispute.id, 'resolved', 'Split adjusted per group agreement')}
+                        onClick={() => resolveDispute(dispute.id, 'approved')}
                         className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />

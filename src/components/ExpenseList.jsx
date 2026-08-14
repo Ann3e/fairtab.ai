@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { Expense, ExpenseCategory } from '../types';
-import { formatCurrency } from '../utils/debtSimplification';
+import { useApp } from '../context/AppContext.jsx';
+import { formatCurrency } from '../utils/debtSimplification.js';
 import { 
-  Search, Filter, Plus, Receipt, AlertCircle, Trash2, 
+  Search, Plus, Receipt, AlertCircle, Trash2, 
   ChevronDown, ChevronUp, MessageSquareWarning, Sparkles,
   Utensils, ShoppingCart, Home, Plane, Car, Film, Zap, ShoppingBag, HeartPulse, HelpCircle
 } from 'lucide-react';
 
-const categoryIconMap: Record<string, React.ReactNode> = {
+const categoryIconMap = {
   'Food & Dining': <Utensils className="w-4 h-4 text-orange-400" />,
   'Groceries': <ShoppingCart className="w-4 h-4 text-emerald-400" />,
   'Rent & Housing': <Home className="w-4 h-4 text-blue-400" />,
@@ -21,7 +20,7 @@ const categoryIconMap: Record<string, React.ReactNode> = {
   'Other': <HelpCircle className="w-4 h-4 text-slate-400" />,
 };
 
-export const ExpenseList: React.FC = () => {
+export const ExpenseList = () => {
   const { 
     expenses, 
     activeGroup, 
@@ -31,14 +30,13 @@ export const ExpenseList: React.FC = () => {
     createDispute, 
     setIsExpenseModalOpen,
     setIsVoiceModalOpen,
-    setIsReceiptModalOpen,
-    addToast
+    setIsReceiptModalOpen
   } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [expandedExpenseId, setExpandedExpenseId] = useState<string | null>(null);
-  const [disputeModalExpense, setDisputeModalExpense] = useState<Expense | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [expandedExpenseId, setExpandedExpenseId] = useState(null);
+  const [disputeModalExpense, setDisputeModalExpense] = useState(null);
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeProposal, setDisputeProposal] = useState('');
 
@@ -47,21 +45,21 @@ export const ExpenseList: React.FC = () => {
   const currency = activeGroup.currency || 'USD';
 
   // Filtered expenses
-  const filteredExpenses = expenses.filter(exp => {
+  const filteredExpenses = (expenses || []).filter(exp => {
     const matchesSearch = exp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (exp.notes && exp.notes.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = selectedCategory === 'all' || exp.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const handleOpenDispute = (e: React.MouseEvent, expense: Expense) => {
+  const handleOpenDispute = (e, expense) => {
     e.stopPropagation();
     setDisputeModalExpense(expense);
     setDisputeReason('');
     setDisputeProposal('');
   };
 
-  const handleSubmittingDispute = async (e: React.FormEvent) => {
+  const handleSubmittingDispute = async (e) => {
     e.preventDefault();
     if (!disputeModalExpense || !disputeReason.trim()) return;
     await createDispute(disputeModalExpense.id, disputeReason, disputeProposal);
@@ -154,7 +152,7 @@ export const ExpenseList: React.FC = () => {
           </p>
           <button
             onClick={() => setIsExpenseModalOpen(true)}
-            className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500 transition inline-flex items-center gap-1.5"
+            className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500 transition inline-flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             Log First Expense
@@ -267,7 +265,7 @@ export const ExpenseList: React.FC = () => {
                               <span className="text-slate-200 font-medium">{item.name}</span>
                               <div className="flex items-center gap-3">
                                 <div className="flex -space-x-1">
-                                  {item.assignedMemberIds.map(mid => {
+                                  {(item.assignedMemberIds || []).map(mid => {
                                     const m = members.find(mem => mem.id === mid);
                                     return (
                                       <img 
@@ -321,7 +319,7 @@ export const ExpenseList: React.FC = () => {
                     <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-800">
                       <button
                         onClick={(e) => handleOpenDispute(e, exp)}
-                        className="text-amber-400 hover:text-amber-300 font-medium text-xs flex items-center gap-1 transition"
+                        className="text-amber-400 hover:text-amber-300 font-medium text-xs flex items-center gap-1 transition cursor-pointer"
                       >
                         <MessageSquareWarning className="w-3.5 h-3.5" />
                         <span>Question Split / Open Dispute</span>
@@ -334,7 +332,7 @@ export const ExpenseList: React.FC = () => {
                             deleteExpense(exp.id);
                           }
                         }}
-                        className="text-slate-500 hover:text-rose-400 text-xs flex items-center gap-1 transition"
+                        className="text-slate-500 hover:text-rose-400 text-xs flex items-center gap-1 transition cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         <span>Delete Expense</span>
@@ -393,13 +391,13 @@ export const ExpenseList: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setDisputeModalExpense(null)}
-                  className="px-4 py-2 rounded-xl text-slate-300 hover:bg-slate-800 text-xs font-medium transition"
+                  className="px-4 py-2 rounded-xl text-slate-300 hover:bg-slate-800 text-xs font-medium transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition"
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition cursor-pointer"
                 >
                   Submit Dispute
                 </button>
