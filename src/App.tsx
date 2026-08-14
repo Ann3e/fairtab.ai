@@ -1,0 +1,180 @@
+import React, { useState } from 'react';
+import { AppProvider, useApp } from './context/AppContext';
+import { Navbar } from './components/Navbar';
+import { BalanceSummaryCards } from './components/BalanceSummaryCards';
+import { ExpenseList } from './components/ExpenseList';
+import { DebtSimplificationView } from './components/DebtSimplificationView';
+import { RecurringExpensesView } from './components/RecurringExpensesView';
+import { DisputesView } from './components/DisputesView';
+import { GroupChatView } from './components/GroupChatView';
+import { AIInsightsView } from './components/AIInsightsView';
+import { ExpenseModal } from './components/ExpenseModal';
+import { VoiceLoggerModal } from './components/VoiceLoggerModal';
+import { ReceiptScannerModal } from './components/ReceiptScannerModal';
+import { SettleUpModal } from './components/SettleUpModal';
+import { SmartReminderModal } from './components/SmartReminderModal';
+import { NewGroupModal } from './components/NewGroupModal';
+import { ToastContainer } from './components/ToastContainer';
+import { 
+  Receipt, Zap, Repeat, MessageSquareWarning, 
+  MessageSquare, Sparkles, Plus, Mic, ShieldAlert, Loader2 
+} from 'lucide-react';
+
+const MainContent: React.FC = () => {
+  const { 
+    activeGroup, 
+    isLoading, 
+    disputes, 
+    expenses, 
+    messages,
+    debtResult,
+    setIsExpenseModalOpen,
+    setIsVoiceModalOpen,
+    setIsReceiptModalOpen,
+    setIsNewGroupModalOpen 
+  } = useApp();
+
+  const [activeTab, setActiveTab] = useState<'expenses' | 'debts' | 'recurring' | 'disputes' | 'chat' | 'insights'>('expenses');
+
+  if (isLoading && !activeGroup) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300">
+        <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-3" />
+        <p className="text-sm font-semibold">Loading FairTab Ledger...</p>
+      </div>
+    );
+  }
+
+  const openDisputesCount = disputes.filter(d => d.status === 'open').length;
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      <Navbar />
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+        
+        {/* Top Financial Status Cards */}
+        <BalanceSummaryCards />
+
+        {/* View Navigation Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-5 border-b border-slate-800 scrollbar-none text-xs">
+          
+          <button
+            onClick={() => setActiveTab('expenses')}
+            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'expenses'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-850 border border-slate-800'
+            }`}
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Expenses & Ledger</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 opacity-80">
+              {expenses.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('debts')}
+            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'debts'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-850 border border-slate-800'
+            }`}
+          >
+            <Zap className="w-4 h-4 text-emerald-400" />
+            <span>Debt Simplification & Settle</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 text-emerald-400 font-mono">
+              {debtResult.simplifiedDebts.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('recurring')}
+            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'recurring'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-850 border border-slate-800'
+            }`}
+          >
+            <Repeat className="w-4 h-4" />
+            <span>Scheduled Bills</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('disputes')}
+            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'disputes'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-850 border border-slate-800'
+            }`}
+          >
+            <MessageSquareWarning className="w-4 h-4 text-amber-400" />
+            <span>Disputes</span>
+            {openDisputesCount > 0 && (
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-extrabold animate-pulse">
+                {openDisputesCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('chat')}
+            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'chat'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-850 border border-slate-800'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Group Chat & Activity</span>
+            {messages.length > 0 && (
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 opacity-80">
+                {messages.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('insights')}
+            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'insights'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-850 border border-slate-800'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span>AI Spending Intelligence</span>
+          </button>
+
+        </div>
+
+        {/* Tab Content Panels */}
+        {activeTab === 'expenses' && <ExpenseList />}
+        {activeTab === 'debts' && <DebtSimplificationView />}
+        {activeTab === 'recurring' && <RecurringExpensesView />}
+        {activeTab === 'disputes' && <DisputesView />}
+        {activeTab === 'chat' && <GroupChatView />}
+        {activeTab === 'insights' && <AIInsightsView />}
+
+      </main>
+
+      {/* Global Modals */}
+      <ExpenseModal />
+      <VoiceLoggerModal />
+      <ReceiptScannerModal />
+      <SettleUpModal />
+      <SmartReminderModal />
+      <NewGroupModal />
+      <ToastContainer />
+    </div>
+  );
+};
+
+export default function App() {
+  return (
+    <AppProvider>
+      <MainContent />
+    </AppProvider>
+  );
+}
