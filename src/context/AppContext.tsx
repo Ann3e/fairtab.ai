@@ -4,6 +4,7 @@ import {
   ActivityLog, SimplifiedDebtResult 
 } from '../types';
 import { calculateGroupDebts } from '../utils/debtSimplification';
+import { getSocket } from '../lib/socket';
 
 interface Toast {
   id: string;
@@ -175,6 +176,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
+  // Socket.io Real-Time synchronization
+  useEffect(() => {
+    if (!activeGroup?.id) return;
+    const socket = getSocket();
+
+    socket.emit('join_group', activeGroup.id);
+
+    const handleNewMessage = (newMsg: GroupMessage) => {
+      setMessages(prev => {
+        if (prev.some(m => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
+      });
+    };
+
+    const handleExpenseAdded = (newExp: Expense) => {
+      setExpenses(prev => {
+        if (prev.some(e => e.id === newExp.id)) return prev;
+        return [newExp, ...prev];
+      });
+      fetchGroupData(activeGroup.id);
+    };
+
+    const handleExpenseUpdated = (updatedExp: Expense) => {
+      setExpenses(prev => prev.map(e => e.id === updatedExp.id ? updatedExp : e));
+      fetchGroupData(activeGroup.id);
+    };
+
+    const handleExpenseDeleted = ({ id }: { id: string }) => {
+      setExpenses(prev => prev.filter(e => e.id !== id));
+      fetchGroupData(activeGroup.id);
+    };
+
+    const handleSettlementRecorded = (newStl: Settlement) => {
+      setSettlements(prev => {
+        if (prev.some(s => s.id === newStl.id)) return prev;
+        return [newStl, ...prev];
+      });
+      fetchGroupData(activeGroup.id);
+    };
+
+    const handleDisputeEvent = () => {
+      fetchGroupData(activeGroup.id);
+    };
+
+    socket.on('new_message', handleNewMessage);
+    socket.on('expense_added', handleExpenseAdded);
+    socket.on('expense_updated', handleExpenseUpdated);
+    socket.on('expense_deleted', handleExpenseDeleted);
+    socket.on('settlement_recorded', handleSettlementRecorded);
+    socket.on('dispute_created', handleDisputeEvent);
+    socket.on('dispute_resolved', handleDisputeEvent);
+    socket.on('dispute_comment_added', handleDisputeEvent);
+
+    return () => {
+      socket.emit('leave_group', activeGroup.id);
+      socket.off('new_message', handleNewMessage);
+      socket.off('expense_added', handleExpenseAdded);
+      socket.off('expense_updated', handleExpenseUpdated);
+      socket.off('expense_deleted', handleExpenseDeleted);
+      socket.off('settlement_recorded', handleSettlementRecorded);
+      socket.off('dispute_created', handleDisputeEvent);
+      socket.off('dispute_resolved', handleDisputeEvent);
+      socket.off('dispute_comment_added', handleDisputeEvent);
+    };
+  }, [activeGroup?.id, fetchGroupData]);
+
   useEffect(() => {
     if (activeGroup?.id) {
       fetchGroupData(activeGroup.id);
@@ -200,7 +267,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (data.group) {
         setGroups(prev => [data.group, ...prev]);
         setActiveGroup(data.group);
-        addToast(`Group "${data.group.name}" created successfully!`);
+        addToast(`Group "${data.group.name}" created in PostgreSQL!`);
         return data.group;
       }
       return null;
@@ -250,8 +317,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       const data = await res.json();
       if (data.expense) {
-        setExpenses(prev => [data.expense, ...prev]);
-        addToast(`Expense "${data.expense.title}" logged ($${data.expense.amount.toFixed(2)})`);
+        setExpenses(prev => {
+          if (prev.some(e => e.id === data.expense.id)) return prev;
+          return [data.expense, ...prev];
+        });
+        addToast(`Expense "${data.expense.title}" saved to PostgreSQL ($${data.expense.amount.toFixed(2)})`);
         fetchGroupData(activeGroup.id);
         return data.expense;
       }
@@ -293,8 +363,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       const data = await res.json();
       if (data.settlement) {
-        setSettlements(prev => [data.settlement, ...prev]);
-        addToast(`Settlement of $${data.settlement.amount.toFixed(2)} recorded!`);
+        setSettlements(prev => {
+          if (prev.some(s => s.id === data.settlement.id)) return prev;
+          return [data.settlement, ...prev];
+        });
+        addToast(`Settlement of $${data.settlement.amount.toFixed(2)} recorded in PostgreSQL!`);
         fetchGroupData(activeGroup.id);
         return data.settlement;
       }
@@ -318,7 +391,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const data = await res.json();
       if (data.recurringRule) {
         setRecurringRules(prev => [data.recurringRule, ...prev]);
-        addToast(`Recurring bill "${data.recurringRule.title}" configured`);
+        addToast(`Recurring bill "${data.recurringRule.title}" saved`);
         return data.recurringRule;
       }
       return null;
@@ -439,7 +512,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       const data = await res.json();
       if (data.message) {
-        setMessages(prev => [...prev, data.message]);
+        setMessages(prev => {
+          if (prev.some(m => m.id === data.message.id)) return prev;
+          return [...prev, data.message];
+        });
         return data.message;
       }
       return null;

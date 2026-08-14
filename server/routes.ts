@@ -1,408 +1,283 @@
 import { Router, Request, Response } from 'express';
-import { 
-  mockMembers, groups, expenses, settlements, recurringRules, disputes, messages, activityLogs 
-} from './store';
+import * as dbService from './db-service';
 import { 
   parseVoiceTranscript, scanReceiptOCR, generateSmartReminder, generateSpendingInsights 
 } from './gemini';
-import { Group, Expense, Settlement, RecurringRule, Dispute, GroupMessage } from '../src/types';
 
 export const apiRouter = Router();
+
+// Helper to get socket.io instance and broadcast
+function broadcastToGroup(req: Request, groupId: string, eventName: string, payload: any) {
+  try {
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group:${groupId}`).emit(eventName, payload);
+    }
+  } catch (err) {
+    console.error('Socket broadcast error:', err);
+  }
+}
 
 // ----------------------------------------------------
 // MEMBERS & GROUPS
 // ----------------------------------------------------
 
-apiRouter.get('/members', (req: Request, res: Response) => {
-  res.json({ members: mockMembers });
-});
-
-apiRouter.get('/groups', (req: Request, res: Response) => {
-  res.json({ groups });
-});
-
-apiRouter.get('/groups/:id', (req: Request, res: Response) => {
-  const group = groups.find(g => g.id === req.params.id);
-  if (!group) return res.status(404).json({ error: 'Group not found' });
-  res.json({ group });
-});
-
-apiRouter.post('/groups', (req: Request, res: Response) => {
-  const { name, description, category, currency, memberIds, budgetLimit, avatarIcon } = req.body;
-  if (!name) return res.status(400).json({ error: 'Group name is required' });
-
-  const selectedMembers = mockMembers.filter(m => (memberIds || ['usr_alex']).includes(m.id));
-  if (selectedMembers.length === 0) selectedMembers.push(mockMembers[0]);
-
-  const newGroup: Group = {
-    id: `grp_${Date.now()}`,
-    name,
-    description: description || '',
-    category: category || 'trip',
-    currency: currency || 'USD',
-    inviteCode: `${name.substring(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
-    avatarIcon: avatarIcon || 'Users',
-    budgetLimit: budgetLimit ? Number(budgetLimit) : undefined,
-    members: selectedMembers,
-    createdAt: new Date().toISOString(),
-  };
-
-  groups.unshift(newGroup);
-
-  activityLogs.unshift({
-    id: `act_${Date.now()}`,
-    groupId: newGroup.id,
-    actorId: selectedMembers[0]?.id || 'usr_alex',
-    action: 'created_group',
-    details: `created group "${newGroup.name}"`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.status(201).json({ group: newGroup });
-});
-
-apiRouter.put('/groups/:id', (req: Request, res: Response) => {
-  const idx = groups.findIndex(g => g.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Group not found' });
-
-  const updated = { ...groups[idx], ...req.body };
-  groups[idx] = updated;
-  res.json({ group: updated });
-});
-
-apiRouter.post('/groups/join', (req: Request, res: Response) => {
-  const { inviteCode, memberId } = req.body;
-  const group = groups.find(g => g.inviteCode.toUpperCase() === inviteCode?.trim().toUpperCase());
-  if (!group) return res.status(404).json({ error: 'Invalid invite code' });
-
-  const member = mockMembers.find(m => m.id === (memberId || 'usr_alex')) || mockMembers[0];
-  if (!group.members.some(m => m.id === member.id)) {
-    group.members.push(member);
-    activityLogs.unshift({
-      id: `act_${Date.now()}`,
-      groupId: group.id,
-      actorId: member.id,
-      action: 'joined_group',
-      details: `${member.name} joined via invite link`,
-      timestamp: new Date().toISOString(),
-    });
+apiRouter.get('/members', async (req: Request, res: Response) => {
+  try {
+    const members = await dbService.getAllMembers();
+    res.json({ members });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch members' });
   }
+});
 
-  res.json({ group, member });
+apiRouter.get('/groups', async (req: Request, res: Response) => {
+  try {
+    const groups = await dbService.getAllGroups();
+    res.json({ groups });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch groups' });
+  }
+});
+
+apiRouter.get('/groups/:id', async (req: Request, res: Response) => {
+  try {
+    const group = await dbService.getGroupById(req.params.id);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    res.json({ group });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch group' });
+  }
+});
+
+apiRouter.post('/groups', async (req: Request, res: Response) => {
+  try {
+    const { name, description, category, currency, memberIds, budgetLimit, avatarIcon } = req.body;
+    if (!name) return res.status(400).json({ error: 'Group name is required' });
+
+    const newGroup = await dbService.createGroup({
+      name, description, category, currency, memberIds, budgetLimit, avatarIcon
+    });
+
+    res.status(201).json({ group: newGroup });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to create group' });
+  }
+});
+
+apiRouter.put('/groups/:id', async (req: Request, res: Response) => {
+  try {
+    const updated = await dbService.updateGroup(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Group not found' });
+    broadcastToGroup(req, req.params.id, 'group_updated', updated);
+    res.json({ group: updated });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update group' });
+  }
+});
+
+apiRouter.post('/groups/join', async (req: Request, res: Response) => {
+  try {
+    const { inviteCode, memberId } = req.body;
+    const result = await dbService.joinGroupByCode(inviteCode, memberId || 'usr_alex');
+    if (!result) return res.status(404).json({ error: 'Invalid invite code' });
+    broadcastToGroup(req, result.group.id, 'member_joined', result);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to join group' });
+  }
 });
 
 // ----------------------------------------------------
 // EXPENSES
 // ----------------------------------------------------
 
-apiRouter.get('/groups/:id/expenses', (req: Request, res: Response) => {
-  const groupExpenses = expenses.filter(e => e.groupId === req.params.id);
-  res.json({ expenses: groupExpenses });
-});
-
-apiRouter.post('/groups/:id/expenses', (req: Request, res: Response) => {
-  const { 
-    title, amount, currency, category, paidById, date, splitType, splits, 
-    notes, items, tax, tip, receiptUrl, isRecurring, recurringInterval, createdBy 
-  } = req.body;
-
-  if (!title || !amount || !paidById) {
-    return res.status(400).json({ error: 'Title, amount, and payer are required' });
+apiRouter.get('/groups/:id/expenses', async (req: Request, res: Response) => {
+  try {
+    const expenses = await dbService.getExpensesByGroupId(req.params.id);
+    res.json({ expenses });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch expenses' });
   }
-
-  const newExpense: Expense = {
-    id: `exp_${Date.now()}`,
-    groupId: req.params.id,
-    title,
-    amount: Number(amount),
-    currency: currency || 'USD',
-    category: category || 'Food & Dining',
-    paidById,
-    date: date || new Date().toISOString().split('T')[0],
-    splitType: splitType || 'equal',
-    splits: splits || [],
-    notes,
-    items,
-    tax: tax ? Number(tax) : undefined,
-    tip: tip ? Number(tip) : undefined,
-    receiptUrl,
-    isRecurring,
-    recurringInterval,
-    disputeStatus: 'none',
-    createdBy: createdBy || paidById,
-    createdAt: new Date().toISOString(),
-  };
-
-  expenses.unshift(newExpense);
-
-  activityLogs.unshift({
-    id: `act_${Date.now()}`,
-    groupId: req.params.id,
-    actorId: paidById,
-    action: 'added_expense',
-    details: `added expense "${title}" (${newExpense.currency} ${newExpense.amount.toFixed(2)})`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.status(201).json({ expense: newExpense });
 });
 
-apiRouter.put('/groups/:id/expenses/:expId', (req: Request, res: Response) => {
-  const idx = expenses.findIndex(e => e.id === req.params.expId && e.groupId === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Expense not found' });
+apiRouter.post('/groups/:id/expenses', async (req: Request, res: Response) => {
+  try {
+    const { title, amount, paidById } = req.body;
+    if (!title || !amount || !paidById) {
+      return res.status(400).json({ error: 'Title, amount, and payer are required' });
+    }
 
-  const updated: Expense = { ...expenses[idx], ...req.body };
-  expenses[idx] = updated;
-
-  activityLogs.unshift({
-    id: `act_${Date.now()}`,
-    groupId: req.params.id,
-    actorId: req.body.updatedBy || updated.paidById,
-    action: 'updated_expense',
-    details: `updated expense "${updated.title}"`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.json({ expense: updated });
+    const expense = await dbService.createExpense(req.params.id, req.body);
+    broadcastToGroup(req, req.params.id, 'expense_added', expense);
+    res.status(201).json({ expense });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to add expense' });
+  }
 });
 
-apiRouter.delete('/groups/:id/expenses/:expId', (req: Request, res: Response) => {
-  const idx = expenses.findIndex(e => e.id === req.params.expId && e.groupId === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Expense not found' });
+apiRouter.put('/groups/:id/expenses/:expId', async (req: Request, res: Response) => {
+  try {
+    const updated = await dbService.updateExpense(req.params.id, req.params.expId, req.body);
+    if (!updated) return res.status(404).json({ error: 'Expense not found' });
+    broadcastToGroup(req, req.params.id, 'expense_updated', updated);
+    res.json({ expense: updated });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update expense' });
+  }
+});
 
-  const [removed] = expenses.splice(idx, 1);
-
-  activityLogs.unshift({
-    id: `act_${Date.now()}`,
-    groupId: req.params.id,
-    actorId: 'usr_alex',
-    action: 'deleted_expense',
-    details: `deleted expense "${removed.title}"`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.json({ success: true, removedId: removed.id });
+apiRouter.delete('/groups/:id/expenses/:expId', async (req: Request, res: Response) => {
+  try {
+    await dbService.deleteExpense(req.params.id, req.params.expId);
+    broadcastToGroup(req, req.params.id, 'expense_deleted', { id: req.params.expId });
+    res.json({ success: true, removedId: req.params.expId });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to delete expense' });
+  }
 });
 
 // ----------------------------------------------------
 // SETTLEMENTS
 // ----------------------------------------------------
 
-apiRouter.get('/groups/:id/settlements', (req: Request, res: Response) => {
-  const groupSettlements = settlements.filter(s => s.groupId === req.params.id);
-  res.json({ settlements: groupSettlements });
+apiRouter.get('/groups/:id/settlements', async (req: Request, res: Response) => {
+  try {
+    const settlements = await dbService.getSettlementsByGroupId(req.params.id);
+    res.json({ settlements });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch settlements' });
+  }
 });
 
-apiRouter.post('/groups/:id/settlements', (req: Request, res: Response) => {
-  const { fromMemberId, toMemberId, amount, currency, paymentMethod, referenceId, notes } = req.body;
-  if (!fromMemberId || !toMemberId || !amount) {
-    return res.status(400).json({ error: 'Sender, recipient, and amount are required' });
+apiRouter.post('/groups/:id/settlements', async (req: Request, res: Response) => {
+  try {
+    const { fromMemberId, toMemberId, amount } = req.body;
+    if (!fromMemberId || !toMemberId || !amount) {
+      return res.status(400).json({ error: 'Sender, recipient, and amount are required' });
+    }
+
+    const settlement = await dbService.createSettlement(req.params.id, req.body);
+    broadcastToGroup(req, req.params.id, 'settlement_recorded', settlement);
+    res.status(201).json({ settlement });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to record settlement' });
   }
-
-  const newSettlement: Settlement = {
-    id: `set_${Date.now()}`,
-    groupId: req.params.id,
-    fromMemberId,
-    toMemberId,
-    amount: Number(amount),
-    currency: currency || 'USD',
-    paymentMethod: paymentMethod || 'cash',
-    referenceId,
-    notes,
-    date: new Date().toISOString(),
-    status: 'completed',
-  };
-
-  settlements.unshift(newSettlement);
-
-  const receiver = mockMembers.find(m => m.id === toMemberId);
-
-  activityLogs.unshift({
-    id: `act_${Date.now()}`,
-    groupId: req.params.id,
-    actorId: fromMemberId,
-    action: 'recorded_settlement',
-    details: `settled ${newSettlement.currency} ${newSettlement.amount.toFixed(2)} with ${receiver?.name || 'Member'} via ${newSettlement.paymentMethod?.toUpperCase() || 'CASH'}`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.status(201).json({ settlement: newSettlement });
 });
 
 // ----------------------------------------------------
 // RECURRING RULES
 // ----------------------------------------------------
 
-apiRouter.get('/groups/:id/recurring', (req: Request, res: Response) => {
-  const rules = recurringRules.filter(r => r.groupId === req.params.id);
-  res.json({ recurringRules: rules });
-});
-
-apiRouter.post('/groups/:id/recurring', (req: Request, res: Response) => {
-  const { title, amount, currency, category, paidById, splitType, splits, interval, nextDueDate, autoApprove } = req.body;
-  if (!title || !amount || !paidById) {
-    return res.status(400).json({ error: 'Title, amount, and payer are required' });
+apiRouter.get('/groups/:id/recurring', async (req: Request, res: Response) => {
+  try {
+    const recurringRules = await dbService.getRecurringRulesByGroupId(req.params.id);
+    res.json({ recurringRules });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch recurring rules' });
   }
-
-  const newRule: RecurringRule = {
-    id: `rec_${Date.now()}`,
-    groupId: req.params.id,
-    title,
-    amount: Number(amount),
-    currency: currency || 'USD',
-    category: category || 'Utilities & Bills',
-    paidById,
-    splitType: splitType || 'equal',
-    splits: splits || [],
-    interval: interval || 'monthly',
-    nextDueDate: nextDueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    autoApprove: autoApprove !== undefined ? autoApprove : true,
-    active: true,
-    lastGeneratedDate: new Date().toISOString().split('T')[0],
-  };
-
-  recurringRules.unshift(newRule);
-  res.status(201).json({ recurringRule: newRule });
 });
 
-apiRouter.post('/groups/:id/recurring/:ruleId/trigger', (req: Request, res: Response) => {
-  const rule = recurringRules.find(r => r.id === req.params.ruleId && r.groupId === req.params.id);
-  if (!rule) return res.status(404).json({ error: 'Recurring rule not found' });
+apiRouter.post('/groups/:id/recurring', async (req: Request, res: Response) => {
+  try {
+    const { title, amount, paidById } = req.body;
+    if (!title || !amount || !paidById) {
+      return res.status(400).json({ error: 'Title, amount, and payer are required' });
+    }
 
-  const newExpense: Expense = {
-    id: `exp_rec_${Date.now()}`,
-    groupId: rule.groupId,
-    title: `${rule.title} (Recurring - ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })})`,
-    amount: rule.amount,
-    currency: rule.currency,
-    category: rule.category,
-    paidById: rule.paidById,
-    date: new Date().toISOString().split('T')[0],
-    splitType: rule.splitType,
-    splits: rule.splits,
-    isRecurring: true,
-    recurringInterval: rule.interval,
-    notes: `Auto-generated from recurring cycle (${rule.interval})`,
-    disputeStatus: 'none',
-    createdBy: rule.paidById,
-    createdAt: new Date().toISOString(),
-  };
-
-  expenses.unshift(newExpense);
-  rule.lastGeneratedDate = new Date().toISOString().split('T')[0];
-
-  res.status(201).json({ expense: newExpense, recurringRule: rule });
+    const recurringRule = await dbService.createRecurringRule(req.params.id, req.body);
+    broadcastToGroup(req, req.params.id, 'recurring_rule_added', recurringRule);
+    res.status(201).json({ recurringRule });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to create recurring rule' });
+  }
 });
 
 // ----------------------------------------------------
 // DISPUTES
 // ----------------------------------------------------
 
-apiRouter.get('/groups/:id/disputes', (req: Request, res: Response) => {
-  const groupDisputes = disputes.filter(d => d.groupId === req.params.id);
-  res.json({ disputes: groupDisputes });
-});
-
-apiRouter.post('/groups/:id/disputes', (req: Request, res: Response) => {
-  const { expenseId, raisedById, reason, proposedChanges } = req.body;
-  if (!expenseId || !reason || !raisedById) {
-    return res.status(400).json({ error: 'Expense, reason and user are required' });
+apiRouter.get('/groups/:id/disputes', async (req: Request, res: Response) => {
+  try {
+    const disputes = await dbService.getDisputesByGroupId(req.params.id);
+    res.json({ disputes });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch disputes' });
   }
-
-  const newDispute: Dispute = {
-    id: `disp_${Date.now()}`,
-    groupId: req.params.id,
-    expenseId,
-    raisedById,
-    reason,
-    proposedChanges,
-    status: 'open',
-    comments: [
-      {
-        id: `c_${Date.now()}`,
-        memberId: raisedById,
-        text: reason,
-        timestamp: new Date().toISOString(),
-      }
-    ],
-    createdAt: new Date().toISOString(),
-  };
-
-  disputes.unshift(newDispute);
-
-  const exp = expenses.find(e => e.id === expenseId);
-  if (exp) {
-    exp.disputeStatus = 'disputed';
-  }
-
-  res.status(201).json({ dispute: newDispute });
 });
 
-apiRouter.post('/groups/:id/disputes/:dispId/comments', (req: Request, res: Response) => {
-  const { memberId, text } = req.body;
-  const disp = disputes.find(d => d.id === req.params.dispId && d.groupId === req.params.id);
-  if (!disp) return res.status(404).json({ error: 'Dispute not found' });
-
-  const comment = {
-    id: `c_${Date.now()}`,
-    memberId: memberId || 'usr_alex',
-    text,
-    timestamp: new Date().toISOString(),
-  };
-
-  disp.comments.push(comment);
-  res.json({ dispute: disp, comment });
-});
-
-apiRouter.put('/groups/:id/disputes/:dispId/resolve', (req: Request, res: Response) => {
-  const { status, updatedSplits } = req.body;
-  const disp = disputes.find(d => d.id === req.params.dispId && d.groupId === req.params.id);
-  if (!disp) return res.status(404).json({ error: 'Dispute not found' });
-
-  disp.status = status || 'approved';
-
-  const exp = expenses.find(e => e.id === disp.expenseId);
-  if (exp) {
-    exp.disputeStatus = 'resolved';
-    if (updatedSplits && updatedSplits.length > 0) {
-      exp.splits = updatedSplits;
+apiRouter.post('/groups/:id/disputes', async (req: Request, res: Response) => {
+  try {
+    const { expenseId, raisedById, reason } = req.body;
+    if (!expenseId || !reason || !raisedById) {
+      return res.status(400).json({ error: 'Expense, reason and user are required' });
     }
-  }
 
-  res.json({ dispute: disp, expense: exp });
+    const dispute = await dbService.createDispute(req.params.id, req.body);
+    broadcastToGroup(req, req.params.id, 'dispute_created', dispute);
+    res.status(201).json({ dispute });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to create dispute' });
+  }
+});
+
+apiRouter.post('/groups/:id/disputes/:dispId/comments', async (req: Request, res: Response) => {
+  try {
+    const { memberId, text } = req.body;
+    const dispute = await dbService.addDisputeComment(req.params.id, req.params.dispId, memberId, text);
+    if (!dispute) return res.status(404).json({ error: 'Dispute not found' });
+    broadcastToGroup(req, req.params.id, 'dispute_comment_added', dispute);
+    res.json({ dispute });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to add comment' });
+  }
+});
+
+apiRouter.put('/groups/:id/disputes/:dispId/resolve', async (req: Request, res: Response) => {
+  try {
+    const { status, updatedSplits } = req.body;
+    const dispute = await dbService.resolveDispute(req.params.id, req.params.dispId, status, updatedSplits);
+    if (!dispute) return res.status(404).json({ error: 'Dispute not found' });
+    broadcastToGroup(req, req.params.id, 'dispute_resolved', dispute);
+    res.json({ dispute });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to resolve dispute' });
+  }
 });
 
 // ----------------------------------------------------
 // MESSAGES & ACTIVITY
 // ----------------------------------------------------
 
-apiRouter.get('/groups/:id/messages', (req: Request, res: Response) => {
-  const groupMsgs = messages.filter(m => m.groupId === req.params.id);
-  res.json({ messages: groupMsgs });
+apiRouter.get('/groups/:id/messages', async (req: Request, res: Response) => {
+  try {
+    const messages = await dbService.getGroupMessages(req.params.id);
+    res.json({ messages });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch messages' });
+  }
 });
 
-apiRouter.post('/groups/:id/messages', (req: Request, res: Response) => {
-  const { senderId, text, type, linkedExpenseId, audioDuration } = req.body;
-  if (!text && type !== 'voice') return res.status(400).json({ error: 'Message content is required' });
+apiRouter.post('/groups/:id/messages', async (req: Request, res: Response) => {
+  try {
+    const { text, type } = req.body;
+    if (!text && type !== 'voice') return res.status(400).json({ error: 'Message content is required' });
 
-  const newMsg: GroupMessage = {
-    id: `msg_${Date.now()}`,
-    groupId: req.params.id,
-    senderId: senderId || 'usr_alex',
-    text: text || 'Voice note (0:08)',
-    type: type || 'text',
-    linkedExpenseId,
-    audioDuration,
-    timestamp: new Date().toISOString(),
-  };
-
-  messages.push(newMsg);
-  res.status(201).json({ message: newMsg });
+    const message = await dbService.createGroupMessage(req.params.id, req.body);
+    broadcastToGroup(req, req.params.id, 'new_message', message);
+    res.status(201).json({ message });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to send message' });
+  }
 });
 
-apiRouter.get('/groups/:id/activity', (req: Request, res: Response) => {
-  const logs = activityLogs.filter(l => l.groupId === req.params.id);
-  res.json({ activityLogs: logs });
+apiRouter.get('/groups/:id/activity', async (req: Request, res: Response) => {
+  try {
+    const activityLogs = await dbService.getActivityLogs(req.params.id);
+    res.json({ activityLogs });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch activity logs' });
+  }
 });
 
 // ----------------------------------------------------
