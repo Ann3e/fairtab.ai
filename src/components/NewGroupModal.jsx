@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { GroupCategory, Member } from '../types';
 import { Users, X, Plus, Sparkles, Check } from 'lucide-react';
 
-export const NewGroupModal: React.FC = () => {
+export const NewGroupModal = () => {
   const { isNewGroupModalOpen, setIsNewGroupModalOpen, createGroup, members, currentUser, addToast } = useApp();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<GroupCategory>('Trip');
+  const [category, setCategory] = useState('Trip');
   const [currency, setCurrency] = useState('USD');
   const [budgetLimit, setBudgetLimit] = useState('');
-  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([currentUser.id]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState([currentUser.id]);
 
   if (!isNewGroupModalOpen) return null;
 
-  const toggleMember = (memberId: string) => {
+  const toggleMember = (memberId) => {
     if (selectedMemberIds.includes(memberId)) {
       if (selectedMemberIds.length > 1) {
         setSelectedMemberIds(selectedMemberIds.filter(id => id !== memberId));
@@ -25,7 +24,7 @@ export const NewGroupModal: React.FC = () => {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreate = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
       addToast('Please enter a group title', 'error');
@@ -56,7 +55,7 @@ export const NewGroupModal: React.FC = () => {
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl relative">
         <button
           onClick={() => setIsNewGroupModalOpen(false)}
-          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition"
+          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -90,7 +89,7 @@ export const NewGroupModal: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-300 mb-1">Category</label>
               <select
                 value={category}
-                onChange={e => setCategory(e.target.value as GroupCategory)}
+                onChange={e => setCategory(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white"
               >
                 <option value="Trip">Trip & Travel</option>

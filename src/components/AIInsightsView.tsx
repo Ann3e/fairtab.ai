@@ -33,6 +33,7 @@ export const AIInsightsView: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          groupId: activeGroup.id,
           expenses,
           groupName: activeGroup.name,
           members: activeGroup.members,

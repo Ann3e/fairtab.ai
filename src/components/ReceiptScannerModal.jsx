@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ReceiptScanResult, ExpenseItem, ExpenseCategory } from '../types';
 import { formatCurrency } from '../utils/debtSimplification';
 import { 
   Receipt, Upload, Sparkles, Check, X, RefreshCw, Plus, 
   Trash2, DollarSign, Users, ArrowRight, ShieldCheck, Tag 
 } from 'lucide-react';
 
-export const ReceiptScannerModal: React.FC = () => {
+export const ReceiptScannerModal = () => {
   const { 
     isReceiptModalOpen, 
     setIsReceiptModalOpen, 
@@ -18,16 +17,16 @@ export const ReceiptScannerModal: React.FC = () => {
     addToast 
   } = useApp();
 
-  const [receiptImage, setReceiptImage] = useState<string | null>(null);
+  const [receiptImage, setReceiptImage] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<ReceiptScanResult | null>(null);
+  const [scanResult, setScanResult] = useState(null);
   
   // Interactive assignment state
   const [payerId, setPayerId] = useState(currentUser.id);
   const [merchant, setMerchant] = useState('');
-  const [tax, setTax] = useState<number>(0);
-  const [tip, setTip] = useState<number>(0);
-  const [items, setItems] = useState<{ id: string; name: string; price: number; assignedMemberIds: string[] }[]>([]);
+  const [tax, setTax] = useState(0);
+  const [tip, setTip] = useState(0);
+  const [items, setItems] = useState([]);
 
   if (!activeGroup || !isReceiptModalOpen) return null;
 
@@ -42,7 +41,7 @@ export const ReceiptScannerModal: React.FC = () => {
         merchantName: 'Trattoria Bella Vista',
         date: new Date().toISOString().split('T')[0],
         currency: 'USD',
-        category: 'Food & Dining' as ExpenseCategory,
+        category: 'Food & Dining',
         subtotal: 94.50,
         tax: 8.50,
         tip: 18.00,
@@ -62,7 +61,7 @@ export const ReceiptScannerModal: React.FC = () => {
         merchantName: 'Whole Foods Market',
         date: new Date().toISOString().split('T')[0],
         currency: 'USD',
-        category: 'Groceries' as ExpenseCategory,
+        category: 'Groceries',
         subtotal: 154.00,
         tax: 14.40,
         tip: 0.00,
@@ -77,12 +76,12 @@ export const ReceiptScannerModal: React.FC = () => {
     }
   ];
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = () => {
-        const base64 = reader.result as string;
+        const base64 = reader.result;
         setReceiptImage(base64);
         processReceipt(base64);
       };
@@ -90,7 +89,7 @@ export const ReceiptScannerModal: React.FC = () => {
     }
   };
 
-  const processReceipt = async (imageBase64?: string, preloadedData?: any) => {
+  const processReceipt = async (imageBase64, preloadedData) => {
     setIsScanning(true);
     try {
       if (preloadedData) {
@@ -119,7 +118,7 @@ export const ReceiptScannerModal: React.FC = () => {
     }
   };
 
-  const applyScanData = (data: ReceiptScanResult) => {
+  const applyScanData = (data) => {
     setScanResult(data);
     setMerchant(data.merchantName || 'Receipt Expense');
     setTax(data.tax || 0);
@@ -135,7 +134,7 @@ export const ReceiptScannerModal: React.FC = () => {
     setItems(initialItems);
   };
 
-  const toggleItemMember = (itemId: string, memberId: string) => {
+  const toggleItemMember = (itemId, memberId) => {
     setItems(prev => prev.map(item => {
       if (item.id !== itemId) return item;
       const isAssigned = item.assignedMemberIds.includes(memberId);
@@ -153,7 +152,7 @@ export const ReceiptScannerModal: React.FC = () => {
 
   // Compute calculated itemized shares including proportional tax and tip
   const calculateFinalSplits = () => {
-    const rawItemTotals: Record<string, number> = {};
+    const rawItemTotals = {};
     activeGroup.members.forEach(m => {
       rawItemTotals[m.id] = 0;
     });
@@ -185,7 +184,7 @@ export const ReceiptScannerModal: React.FC = () => {
   };
 
   const handleSaveItemizedExpense = async () => {
-    const { splits, grandTotal } = calculateFinalSplits();
+    const { grandTotal } = calculateFinalSplits();
 
     const created = await addExpense({
       title: merchant || 'Scanned Receipt Expense',
@@ -223,7 +222,7 @@ export const ReceiptScannerModal: React.FC = () => {
         {/* Close Button */}
         <button
           onClick={() => setIsReceiptModalOpen(false)}
-          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition"
+          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -431,7 +430,7 @@ export const ReceiptScannerModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setScanResult(null)}
-                className="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-xs font-medium transition"
+                className="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-xs font-medium transition cursor-pointer"
               >
                 Scan Another Receipt
               </button>

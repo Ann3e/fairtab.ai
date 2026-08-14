@@ -5,7 +5,7 @@ import {
   Wallet, Mountain, Home, Plane, Briefcase, Tag, LogIn
 } from 'lucide-react';
 
-const categoryIcons: Record<string, React.ReactNode> = {
+const categoryIcons = {
   trip: <Mountain className="w-4 h-4 text-emerald-500" />,
   home: <Home className="w-4 h-4 text-blue-500" />,
   couple: <Sparkles className="w-4 h-4 text-pink-500" />,
@@ -13,7 +13,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   other: <Tag className="w-4 h-4 text-purple-500" />,
 };
 
-export const Navbar: React.FC = () => {
+export const Navbar = () => {
   const { 
     currentUser, 
     setCurrentUser, 
@@ -34,7 +34,7 @@ export const Navbar: React.FC = () => {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [joinCodeInput, setJoinCodeInput] = useState('');
 
-  const handleJoinGroup = async (e: React.FormEvent) => {
+  const handleJoinGroup = async (e) => {
     e.preventDefault();
     if (!joinCodeInput.trim()) return;
     const success = await joinGroup(joinCodeInput.trim());
@@ -64,7 +64,7 @@ export const Navbar: React.FC = () => {
             <button
               id="group-switcher-btn"
               onClick={() => setIsGroupDropdownOpen(!isGroupDropdownOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-sm font-medium transition"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-sm font-medium transition cursor-pointer"
             >
               {activeGroup ? (
                 <>
@@ -108,14 +108,14 @@ export const Navbar: React.FC = () => {
                 <div className="border-t border-slate-800 pt-1 px-2 flex flex-col gap-1">
                   <button
                     onClick={() => setIsNewGroupModalOpen(true)}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-indigo-400 hover:bg-indigo-950/40 flex items-center gap-2 transition"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-indigo-400 hover:bg-indigo-950/40 flex items-center gap-2 transition cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Create New Group
                   </button>
                   <button
                     onClick={() => setIsJoinModalOpen(true)}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 flex items-center gap-2 transition"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 flex items-center gap-2 transition cursor-pointer"
                   >
                     <LogIn className="w-3.5 h-3.5" />
                     Join with Invite Code
@@ -196,7 +196,7 @@ export const Navbar: React.FC = () => {
                         setCurrentUser(m);
                         addToast(`Switched view to ${m.name}`, 'info');
                       }}
-                      className={`w-full px-3 py-2 text-left flex items-center justify-between text-sm hover:bg-slate-800/80 transition ${
+                      className={`w-full px-3 py-2 text-left flex items-center justify-between text-sm hover:bg-slate-800/80 transition cursor-pointer ${
                         currentUser.id === m.id ? 'bg-indigo-950/60 text-indigo-300 font-medium' : 'text-slate-200'
                       }`}
                     >
@@ -239,13 +239,13 @@ export const Navbar: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsJoinModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-300 hover:bg-slate-800 text-sm font-medium transition"
+                  className="px-4 py-2 rounded-xl text-slate-300 hover:bg-slate-800 text-sm font-medium transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition cursor-pointer"
                 >
                   Join Group
                 </button>

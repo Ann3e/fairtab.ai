@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import { CheckCircle2, AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
 
-export const ToastContainer: React.FC = () => {
+export const ToastContainer = () => {
   const { toasts, removeToast } = useApp();
 
   if (toasts.length === 0) return null;
@@ -33,7 +33,7 @@ export const ToastContainer: React.FC = () => {
 
             <button
               onClick={() => removeToast(toast.id)}
-              className="text-slate-400 hover:text-white p-0.5 rounded-md hover:bg-slate-800 transition"
+              className="text-slate-400 hover:text-white p-0.5 rounded-md hover:bg-slate-800 transition cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>

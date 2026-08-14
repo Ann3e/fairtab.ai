@@ -6,7 +6,7 @@ import {
   Smile, Briefcase, Laugh, Flame 
 } from 'lucide-react';
 
-export const SmartReminderModal: React.FC = () => {
+export const SmartReminderModal = () => {
   const { 
     isReminderModalOpen, 
     setIsReminderModalOpen, 
@@ -17,7 +17,7 @@ export const SmartReminderModal: React.FC = () => {
     addToast 
   } = useApp();
 
-  const [tone, setTone] = useState<'friendly' | 'formal' | 'funny' | 'dramatic_guilt'>('friendly');
+  const [tone, setTone] = useState('friendly');
   const [reminderMessage, setReminderMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -25,13 +25,7 @@ export const SmartReminderModal: React.FC = () => {
   const amount = reminderTarget?.amount || 0;
   const currency = activeGroup?.currency || 'USD';
 
-  useEffect(() => {
-    if (isReminderModalOpen && debtor && activeGroup) {
-      generateAiReminder(tone);
-    }
-  }, [isReminderModalOpen, reminderTarget?.debtorId, tone]);
-
-  const generateAiReminder = async (selectedTone: string) => {
+  const generateAiReminder = async (selectedTone) => {
     if (!debtor || !activeGroup) return;
     setIsGenerating(true);
     try {
@@ -60,6 +54,12 @@ export const SmartReminderModal: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (isReminderModalOpen && debtor && activeGroup) {
+      generateAiReminder(tone);
+    }
+  }, [isReminderModalOpen, reminderTarget?.debtorId, tone]);
+
   if (!isReminderModalOpen || !debtor || !activeGroup) return null;
 
   const copyToClipboard = () => {
@@ -82,7 +82,7 @@ export const SmartReminderModal: React.FC = () => {
         {/* Close button */}
         <button
           onClick={() => setIsReminderModalOpen(false)}
-          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition"
+          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>

@@ -1,9 +1,9 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import { mockMembers, groups, expenses } from './store';
+import { mockMembers, groups, expenses } from './store.js';
 
-let ai: GoogleGenAI | null = null;
+let ai = null;
 
-export function getGemini(): GoogleGenAI | null {
+export function getGemini() {
   if (!ai && process.env.GEMINI_API_KEY) {
     ai = new GoogleGenAI({
       apiKey: process.env.GEMINI_API_KEY,
@@ -17,7 +17,7 @@ export function getGemini(): GoogleGenAI | null {
   return ai;
 }
 
-export async function parseVoiceTranscript(transcript: string, groupMembers?: any[]) {
+export async function parseVoiceTranscript(transcript, groupMembers) {
   const client = getGemini();
   if (!client) {
     return {
@@ -30,7 +30,7 @@ export async function parseVoiceTranscript(transcript: string, groupMembers?: an
     };
   }
 
-  const memberNames = (groupMembers || mockMembers).map((m: any) => m.name).join(', ');
+  const memberNames = (groupMembers || mockMembers).map((m) => m.name).join(', ');
 
   const prompt = `You are a financial parsing engine for FairTab expense tracker. 
 Parse the following natural language voice expense description:
@@ -84,7 +84,7 @@ Extract:
   return JSON.parse(response.text || '{}');
 }
 
-export async function scanReceiptOCR(imageBase64?: string) {
+export async function scanReceiptOCR(imageBase64) {
   const client = getGemini();
   if (!client) {
     return {
@@ -108,7 +108,7 @@ export async function scanReceiptOCR(imageBase64?: string) {
     };
   }
 
-  const parts: any[] = [];
+  const parts = [];
   if (imageBase64) {
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     parts.push({
@@ -165,20 +165,20 @@ Ensure all prices are exact numbers.`
 }
 
 export async function generateSmartReminder(
-  debtorName: string,
-  creditorName: string,
-  amount: number,
-  currency: string,
-  groupName: string,
-  tone: string,
-  upiId?: string
+  debtorName,
+  creditorName,
+  amount,
+  currency,
+  groupName,
+  tone,
+  upiId
 ) {
   const formattedAmount = `${currency || '$'}${amount}`;
   const paymentLinkInfo = upiId ? `UPI ID: ${upiId}` : 'via FairTab Settle Up';
   const client = getGemini();
 
   if (!client) {
-    const templates: Record<string, string> = {
+    const templates = {
       friendly: `Hey ${debtorName}! Hope you're having a great week 😊 Quick reminder about your share of ${formattedAmount} for ${groupName}. When you get a chance, you can settle up at ${paymentLinkInfo}. Thank you!`,
       formal: `Dear ${debtorName}, this is a gentle reminder regarding the outstanding balance of ${formattedAmount} for ${groupName}. Please settle the balance at your earliest convenience via ${paymentLinkInfo}. Best regards, ${creditorName}.`,
       funny: `🚨 BREAKING NEWS: My bank account misses you, ${debtorName}! 😂 Just a friendly ping for the ${formattedAmount} from ${groupName}. Help a friend stay solvent: ${paymentLinkInfo} 💸🍕`,
@@ -206,22 +206,12 @@ The message should be ready to send via WhatsApp or SMS. Keep it punchy, natural
   return response.text?.trim() || `Hey ${debtorName}, reminder for ${formattedAmount} for ${groupName}!`;
 }
 
-export async function generateSpendingInsights(
-  groupId?: string,
-  passedExpenses?: any[],
-  passedGroupName?: string,
-  passedMembers?: any[]
-) {
+export async function generateSpendingInsights(groupId) {
   const group = groups.find(g => g.id === groupId) || groups[0];
-  const groupExpenses = (passedExpenses && passedExpenses.length > 0)
-    ? passedExpenses 
-    : expenses.filter(e => e.groupId === (groupId || group.id));
-  const groupName = passedGroupName || group.name;
-  const groupMembers = (passedMembers && passedMembers.length > 0) ? passedMembers : group.members;
-  const budgetLimit = group.budgetLimit || 3000;
+  const groupExpenses = expenses.filter(e => e.groupId === group.id);
 
   const totalSpend = groupExpenses.reduce((acc, e) => acc + e.amount, 0);
-  const categoryTotals: Record<string, number> = {};
+  const categoryTotals = {};
   groupExpenses.forEach(e => {
     categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
   });
@@ -234,16 +224,16 @@ export async function generateSpendingInsights(
       summary: `The group has recorded ${groupExpenses.length} shared expenses totaling $${totalSpend.toFixed(2)}. Spending is currently dominated by ${topCategory}.`,
       topSpendingCategory: topCategory,
       burnRatePerDay: Math.round(totalSpend / 7),
-      spendingVelocityComment: totalSpend > budgetLimit * 0.8 
+      spendingVelocityComment: totalSpend > (group.budgetLimit || 3000) * 0.8 
         ? 'Approaching budget ceiling. Keep an eye on dining & nightlife.' 
         : 'Pacing healthily within expected limits.',
-      memberInsights: groupMembers.map((m: any, idx: number) => ({
+      memberInsights: group.members.map((m, idx) => ({
         memberId: m.id,
         badge: idx === 0 ? '🏆 Primary Payer' : idx === 1 ? '⚡ Instant Settler' : '🎯 Itemized Pro',
         observation: `${m.name} contributes actively to group utility and cabin expenses.`,
       })),
-      budgetHealth: totalSpend > budgetLimit ? 'critical' : totalSpend > budgetLimit * 0.75 ? 'warning' : 'safe',
-      budgetAlertMessage: budgetLimit ? `Group spent $${totalSpend.toFixed(2)} of $${budgetLimit.toFixed(2)} budget cap.` : undefined,
+      budgetHealth: totalSpend > (group.budgetLimit || 3000) ? 'critical' : totalSpend > (group.budgetLimit || 3000) * 0.75 ? 'warning' : 'safe',
+      budgetAlertMessage: group.budgetLimit ? `Group spent $${totalSpend.toFixed(2)} of $${group.budgetLimit.toFixed(2)} budget cap.` : undefined,
       recommendations: [
         'Consolidate multiple small convenience store runs into a single bulk grocery haul to save ~12%.',
         'Settle active balances weekly using UPI / Instant Pay to avoid end-of-trip settlement bottleneck.',
@@ -252,14 +242,14 @@ export async function generateSpendingInsights(
     };
   }
 
-  const expenseSummary = groupExpenses.map((e: any) => `${e.title}: $${e.amount} (${e.category}) paid by ${e.paidById}`).join('\n');
+  const expenseSummary = groupExpenses.map(e => `${e.title}: $${e.amount} (${e.category}) paid by ${e.paidById}`).join('\n');
 
-  const prompt = `Analyze the spending data for group "${groupName}" with budget limit $${budgetLimit || 'N/A'}.
+  const prompt = `Analyze the spending data for group "${group.name}" with budget limit $${group.budgetLimit || 'N/A'}.
 Total spend: $${totalSpend}
 Expenses list:
 ${expenseSummary}
 
-Members: ${groupMembers.map((m: any) => `${m.name} (${m.id})`).join(', ')}
+Members: ${group.members.map(m => `${m.name} (${m.id})`).join(', ')}
 
 Return a structured JSON with:
 1. summary: high-level financial summary

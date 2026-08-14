@@ -7,7 +7,7 @@ import {
   Smartphone, CreditCard, Banknote, ShieldCheck, Sparkles 
 } from 'lucide-react';
 
-export const SettleUpModal: React.FC = () => {
+export const SettleUpModal = () => {
   const { 
     isSettleModalOpen, 
     setIsSettleModalOpen, 
@@ -21,7 +21,7 @@ export const SettleUpModal: React.FC = () => {
 
   const [toMemberId, setToMemberId] = useState('');
   const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'paypal' | 'cash' | 'bank_transfer'>('upi');
+  const [paymentMethod, setPaymentMethod] = useState('upi');
   const [notes, setNotes] = useState('');
   const [referenceId, setReferenceId] = useState('');
 
@@ -49,7 +49,7 @@ export const SettleUpModal: React.FC = () => {
     ? `https://paypal.me/${receiver.paypalHandle}/${amount}`
     : `https://paypal.me`;
 
-  const handleRecordSettlement = async (e: React.FormEvent) => {
+  const handleRecordSettlement = async (e) => {
     e.preventDefault();
     if (!toMemberId || !amount || parseFloat(amount) <= 0) {
       addToast('Please enter a valid receiver and amount', 'error');
@@ -93,7 +93,7 @@ export const SettleUpModal: React.FC = () => {
         {/* Close Button */}
         <button
           onClick={() => setIsSettleModalOpen(false)}
-          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition"
+          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>

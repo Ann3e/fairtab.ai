@@ -6,7 +6,7 @@ import {
   History, Clock, Tag, UserCheck, ShieldCheck, ArrowRight, CornerDownRight, Square
 } from 'lucide-react';
 
-export const GroupChatView: React.FC = () => {
+export const GroupChatView = () => {
   const { 
     messages, 
     chatMessages, 
@@ -21,14 +21,14 @@ export const GroupChatView: React.FC = () => {
   } = useApp();
 
   const [input, setInput] = useState('');
-  const [viewMode, setViewMode] = useState<'chat' | 'activity'>('chat');
-  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
-  const [selectedExpenseToLink, setSelectedExpenseToLink] = useState<string>('');
+  const [viewMode, setViewMode] = useState('chat');
+  const [playingVoiceId, setPlayingVoiceId] = useState(null);
+  const [selectedExpenseToLink, setSelectedExpenseToLink] = useState('');
   const [showExpensePicker, setShowExpensePicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<any>(null);
+  const messagesEndRef = useRef(null);
+  const timerRef = useRef(null);
 
   const messageList = chatMessages || messages || [];
 
@@ -57,7 +57,7 @@ export const GroupChatView: React.FC = () => {
 
   if (!activeGroup) return null;
 
-  const handleSend = async (e: React.FormEvent) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() && !selectedExpenseToLink) return;
     
@@ -202,7 +202,7 @@ export const GroupChatView: React.FC = () => {
               const sender = members.find(m => m.id === msg.senderId);
               const isSystem = msg.senderId === 'system' || msg.type === 'system';
               const linkedExp = msg.linkedExpenseId ? expenses.find(e => e.id === msg.linkedExpenseId) : null;
-              const isVoice = msg.type === 'voice' || (msg.type as string) === 'voice_note';
+              const isVoice = msg.type === 'voice' || msg.type === 'voice_note';
 
               if (isSystem) {
                 return (

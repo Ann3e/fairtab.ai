@@ -5,9 +5,8 @@ import {
   Repeat, Calendar, Play, Plus, Check, Zap, 
   Clock, ShieldCheck, AlertCircle, X, Sparkles 
 } from 'lucide-react';
-import { ExpenseCategory } from '../types';
 
-export const RecurringExpensesView: React.FC = () => {
+export const RecurringExpensesView = () => {
   const { 
     recurringRules, 
     activeGroup, 
@@ -21,8 +20,8 @@ export const RecurringExpensesView: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<ExpenseCategory>('Utilities & Bills');
-  const [interval, setInterval] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [category, setCategory] = useState('Utilities & Bills');
+  const [interval, setInterval] = useState('monthly');
   const [nextDueDate, setNextDueDate] = useState('2026-09-01');
   const [autoApprove, setAutoApprove] = useState(true);
 
@@ -30,7 +29,7 @@ export const RecurringExpensesView: React.FC = () => {
 
   const currency = activeGroup.currency || 'USD';
 
-  const handleCreateRule = async (e: React.FormEvent) => {
+  const handleCreateRule = async (e) => {
     e.preventDefault();
     if (!title.trim() || !amount || parseFloat(amount) <= 0) {
       addToast('Please provide a title and valid amount', 'error');
@@ -126,7 +125,7 @@ export const RecurringExpensesView: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-1">
                       <img src={payer?.avatar} alt={payer?.name} className="w-4 h-4 rounded-full object-cover" />
-                      <span>Paid by {payer?.name.split(' ')[0]}</span>
+                      <span>Paid by {payer?.name?.split(' ')[0]}</span>
                     </div>
                   </div>
                 </div>
@@ -162,7 +161,7 @@ export const RecurringExpensesView: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
             <button
               onClick={() => setIsAddModalOpen(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white"
+              className="absolute top-5 right-5 text-slate-400 hover:text-white cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -178,7 +177,7 @@ export const RecurringExpensesView: React.FC = () => {
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="e.g. Monthly Rent, WiFi, Netflix"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white focus:outline-hidden"
                   required
                 />
               </div>
@@ -192,7 +191,7 @@ export const RecurringExpensesView: React.FC = () => {
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white font-bold"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white font-bold focus:outline-hidden"
                     required
                   />
                 </div>
@@ -201,7 +200,7 @@ export const RecurringExpensesView: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Interval</label>
                   <select
                     value={interval}
-                    onChange={e => setInterval(e.target.value as any)}
+                    onChange={e => setInterval(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white"
                   >
                     <option value="monthly">Monthly</option>
@@ -239,13 +238,13 @@ export const RecurringExpensesView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-400 text-xs font-medium"
+                  className="px-4 py-2 rounded-xl text-slate-400 text-xs font-medium cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs cursor-pointer"
                 >
                   Save Rule
                 </button>
