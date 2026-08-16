@@ -4,7 +4,8 @@ import {
   settlements, recurringRules, groupMessages, activityLogs 
 } from '../src/db/schema.js';
 import { eq, desc } from 'drizzle-orm';
-import { disputes as storeDisputes } from './store.js';
+
+const activeDisputeInquiries = [];
 
 // ----------------------------------------------------
 // MEMBERS & GROUPS
@@ -412,7 +413,7 @@ export async function createRecurringRule(groupId, data) {
 // ----------------------------------------------------
 
 export async function getDisputesByGroupId(groupId) {
-  return storeDisputes.filter(d => d.groupId === groupId);
+  return activeDisputeInquiries.filter(d => d.groupId === groupId);
 }
 
 export async function createDispute(groupId, data) {
@@ -436,7 +437,7 @@ export async function createDispute(groupId, data) {
     createdAt: new Date().toISOString(),
   };
 
-  storeDisputes.push(newDispute);
+  activeDisputeInquiries.push(newDispute);
 
   try {
     await db.update(expenses).set({ disputeStatus: 'disputed' }).where(eq(expenses.id, data.expenseId));
@@ -479,7 +480,7 @@ export async function createDispute(groupId, data) {
 }
 
 export async function addDisputeComment(groupId, dispId, memberId, text) {
-  const disp = storeDisputes.find(d => d.id === dispId);
+  const disp = activeDisputeInquiries.find(d => d.id === dispId);
   if (!disp) return null;
   
   disp.comments.push({
@@ -493,7 +494,7 @@ export async function addDisputeComment(groupId, dispId, memberId, text) {
 }
 
 export async function resolveDispute(groupId, dispId, status, updatedSplits) {
-  const disp = storeDisputes.find(d => d.id === dispId);
+  const disp = activeDisputeInquiries.find(d => d.id === dispId);
   if (!disp) return null;
   disp.status = status;
 

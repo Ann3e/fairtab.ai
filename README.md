@@ -288,7 +288,6 @@ FairTab's debt simplification engine reduces an $N$-person tangled web of bilate
 │   ├── app.js                    # Express application factory & middleware setup
 │   ├── routes.js                 # REST API endpoints & Socket.io broadcasters
 │   ├── db-service.js             # Relational data access layer & database queries
-│   ├── store.js                  # In-memory mock and state store
 │   └── gemini.js                 # Gemini 3.7 Flash integration pipelines
 │
 ├── server.js                     # Root HTTP + Socket.io server bootstrap

@@ -1,5 +1,4 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import { mockMembers, groups, expenses } from './store.js';
 
 let ai = null;
 
@@ -30,7 +29,7 @@ export async function parseVoiceTranscript(transcript, groupMembers) {
     };
   }
 
-  const memberNames = (groupMembers || mockMembers).map((m) => m.name).join(', ');
+  const memberNames = (groupMembers && groupMembers.length > 0 ? groupMembers : [{ name: 'Alex' }, { name: 'Priya' }]).map((m) => m.name).join(', ');
 
   const prompt = `You are a financial parsing engine for FairTab expense tracker. 
 Parse the following natural language voice expense description:
@@ -212,13 +211,10 @@ export async function generateSpendingInsights(
   passedGroupName,
   passedMembers
 ) {
-  const group = groups.find(g => g.id === groupId) || groups[0];
-  const groupExpenses = (passedExpenses && passedExpenses.length > 0)
-    ? passedExpenses 
-    : expenses.filter(e => e.groupId === (groupId || group.id));
-  const groupName = passedGroupName || group.name;
-  const groupMembers = (passedMembers && passedMembers.length > 0) ? passedMembers : group.members;
-  const budgetLimit = group.budgetLimit || 3000;
+  const groupExpenses = passedExpenses || [];
+  const groupName = passedGroupName || 'Shared Group';
+  const groupMembers = passedMembers || [];
+  const budgetLimit = 3000;
 
   const totalSpend = groupExpenses.reduce((acc, e) => acc + e.amount, 0);
   const categoryTotals = {};
