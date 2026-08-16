@@ -1,9 +1,10 @@
 import { db } from '../src/db/index.js';
 import { 
   members, groups, groupMembers, expenses, expenseSplits, expenseItems, 
-  settlements, recurringRules, disputes, disputeComments, groupMessages, activityLogs 
+  settlements, recurringRules, groupMessages, activityLogs 
 } from '../src/db/schema.js';
 import { eq, desc } from 'drizzle-orm';
+import { disputes as storeDisputes } from './store.js';
 
 // ----------------------------------------------------
 // MEMBERS & GROUPS
@@ -407,105 +408,96 @@ export async function createRecurringRule(groupId, data) {
 }
 
 // ----------------------------------------------------
-// DISPUTES
+// DISPUTES & SPLIT INQUIRIES
 // ----------------------------------------------------
 
 export async function getDisputesByGroupId(groupId) {
-  try {
-    const rawDisputes = await db.select().from(disputes).where(eq(disputes.groupId, groupId));
-    const rawComments = await db.select().from(disputeComments);
-
-    return rawDisputes.map(d => {
-      const comments = rawComments.filter(c => c.disputeId === d.id).map(c => ({
-        id: c.id,
-        memberId: c.memberId,
-        text: c.text,
-        timestamp: c.timestamp ? c.timestamp.toISOString() : new Date().toISOString(),
-      }));
-
-      return {
-        id: d.id,
-        groupId: d.groupId,
-        expenseId: d.expenseId,
-        raisedById: d.raisedById,
-        reason: d.reason,
-        proposedChanges: d.proposedChanges || undefined,
-        status: d.status || 'open',
-        comments,
-        createdAt: d.createdAt ? d.createdAt.toISOString() : new Date().toISOString(),
-      };
-    });
-  } catch (err) {
-    console.error('Error fetching disputes:', err);
-    return [];
-  }
+  return storeDisputes.filter(d => d.groupId === groupId);
 }
 
 export async function createDispute(groupId, data) {
   const dispId = `disp_${Date.now()}`;
-  await db.insert(disputes).values({
+  const newDispute = {
     id: dispId,
     groupId,
     expenseId: data.expenseId,
     raisedById: data.raisedById,
     reason: data.reason,
-    proposedChanges: data.proposedChanges || null,
+    proposedChanges: data.proposedChanges || undefined,
     status: 'open',
-  });
+    comments: [
+      {
+        id: `c_${Date.now()}`,
+        memberId: data.raisedById,
+        text: data.reason,
+        timestamp: new Date().toISOString(),
+      }
+    ],
+    createdAt: new Date().toISOString(),
+  };
 
-  await db.insert(disputeComments).values({
-    id: `c_${Date.now()}`,
-    disputeId: dispId,
-    memberId: data.raisedById,
-    text: data.reason,
-  });
+  storeDisputes.push(newDispute);
 
-  await db.update(expenses).set({ disputeStatus: 'disputed' }).where(eq(expenses.id, data.expenseId));
+  try {
+    await db.update(expenses).set({ disputeStatus: 'disputed' }).where(eq(expenses.id, data.expenseId));
+  } catch (e) {
+    console.error('Error updating expense dispute status:', e);
+  }
 
   // Find expense title for helpful chat notification
-  const [exp] = await db.select().from(expenses).where(eq(expenses.id, data.expenseId));
-  const expTitle = exp ? exp.title : 'Expense';
+  let expTitle = 'Expense';
+  try {
+    const [exp] = await db.select().from(expenses).where(eq(expenses.id, data.expenseId));
+    if (exp) expTitle = exp.title;
+  } catch (e) {
+    console.error('Error reading expense title:', e);
+  }
 
   // Automatically post to Group Chat and Activity Log
-  await db.insert(groupMessages).values({
-    id: `msg_${Date.now()}`,
-    groupId,
-    senderId: data.raisedById,
-    text: `⚠️ Questioned split on "${expTitle}": "${data.reason}"${data.proposedChanges ? ` (Proposal: ${data.proposedChanges})` : ''}`,
-    type: 'text',
-    linkedExpenseId: data.expenseId,
-  });
+  try {
+    await db.insert(groupMessages).values({
+      id: `msg_${Date.now()}`,
+      groupId,
+      senderId: data.raisedById,
+      text: `⚠️ Questioned split on "${expTitle}": "${data.reason}"${data.proposedChanges ? ` (Proposal: ${data.proposedChanges})` : ''}`,
+      type: 'text',
+      linkedExpenseId: data.expenseId,
+    });
 
-  await db.insert(activityLogs).values({
-    id: `act_${Date.now()}`,
-    groupId,
-    actorId: data.raisedById,
-    actionType: 'expense_disputed',
-    details: `questioned the split for "${expTitle}": "${data.reason}"`,
-  });
+    await db.insert(activityLogs).values({
+      id: `act_${Date.now()}`,
+      groupId,
+      actorId: data.raisedById,
+      actionType: 'expense_disputed',
+      details: `questioned the split for "${expTitle}": "${data.reason}"`,
+    });
+  } catch (e) {
+    console.error('Error posting dispute notifications:', e);
+  }
 
-  const list = await getDisputesByGroupId(groupId);
-  return list.find(d => d.id === dispId);
+  return newDispute;
 }
 
 export async function addDisputeComment(groupId, dispId, memberId, text) {
-  const commentId = `c_${Date.now()}`;
-  await db.insert(disputeComments).values({
-    id: commentId,
-    disputeId: dispId,
+  const disp = storeDisputes.find(d => d.id === dispId);
+  if (!disp) return null;
+  
+  disp.comments.push({
+    id: `c_${Date.now()}`,
     memberId: memberId || 'usr_alex',
     text,
+    timestamp: new Date().toISOString(),
   });
 
-  const list = await getDisputesByGroupId(groupId);
-  return list.find(d => d.id === dispId);
+  return disp;
 }
 
 export async function resolveDispute(groupId, dispId, status, updatedSplits) {
-  await db.update(disputes).set({ status }).where(eq(disputes.id, dispId));
+  const disp = storeDisputes.find(d => d.id === dispId);
+  if (!disp) return null;
+  disp.status = status;
 
-  const [disp] = await db.select().from(disputes).where(eq(disputes.id, dispId));
-  if (disp) {
+  try {
     await db.update(expenses).set({ disputeStatus: 'resolved' }).where(eq(expenses.id, disp.expenseId));
     if (updatedSplits && updatedSplits.length > 0) {
       await db.delete(expenseSplits).where(eq(expenseSplits.expenseId, disp.expenseId));
@@ -519,8 +511,9 @@ export async function resolveDispute(groupId, dispId, status, updatedSplits) {
       }
     }
 
+    let expTitle = 'Expense';
     const [exp] = await db.select().from(expenses).where(eq(expenses.id, disp.expenseId));
-    const expTitle = exp ? exp.title : 'Expense';
+    if (exp) expTitle = exp.title;
 
     await db.insert(groupMessages).values({
       id: `msg_${Date.now()}`,
@@ -538,10 +531,11 @@ export async function resolveDispute(groupId, dispId, status, updatedSplits) {
       actionType: 'dispute_resolved',
       details: `resolved split inquiry on "${expTitle}" (${status})`,
     });
+  } catch (e) {
+    console.error('Error resolving dispute in DB:', e);
   }
 
-  const list = await getDisputesByGroupId(groupId);
-  return list.find(d => d.id === dispId);
+  return disp;
 }
 
 // ----------------------------------------------------

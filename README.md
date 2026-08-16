@@ -94,12 +94,13 @@ FairTab is an advanced, full-stack collaborative finance and expense-sharing pla
 │  │  REST API Router (/api/*)                                                                  │  │
 │  │  ├── /members, /groups (CRUD & Code-Based Group Provisioning)                              │  │
 │  │  ├── /expenses, /settlements (Ledger Entries & Real-Time Sync)                             │  │
-│  │  ├── /recurring, /disputes (Automation Rules & Arbitration Threads)                        │  │
+│  │  ├── /recurring (Automation Rules & Subscription Schedules)                                │  │
+│  │  ├── /messages, /activity (Group Messenger, Split Inquiries & Audit Logs)                  │  │
 │  │  └── /ai/* (OCR Vision Ingestion, Voice NLP, Tone-Aware Reminders, Velocity Insights)       │  │
 │  └────────────────────────────────────────────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────────────────────────────────────────────┐  │
 │  │  Socket.io Real-Time Broker (Room Isolation: `group:<groupId>`)                            │  │
-│  │  ├── Broadcasts: `expense_added`, `settlement_recorded`, `dispute_created`, `new_message`   │  │
+│  │  ├── Broadcasts: `expense_added`, `settlement_recorded`, `new_message`, `activity_logged`   │  │
 │  │  └── Ephemeral Events: `user_typing`, `member_joined`                                      │  │
 │  └────────────────────────────────────────────────────────────────────────────────────────────┘  │
 └────────────────┬───────────────────────────────────────────────────────────────┬─────────────────┘
@@ -116,9 +117,9 @@ FairTab is an advanced, full-stack collaborative finance and expense-sharing pla
 │  ┌────────────────────┐ ┌──────────────────┐ │        │  │ • Pro-rated tax & tip extraction   │  │
 │  │ settlements        │ │ recurring_rules  │ │        │  └────────────────────────────────────┘  │
 │  └────────────────────┘ └──────────────────┘ │        │  ┌────────────────────────────────────┐  │
-│  ┌────────────────────┐ ┌──────────────────┐ │        │  │ Natural Language Voice Logger      │  │
-│  │ disputes & comments│ │ messages & logs  │ │        │  │ • Entity extraction (payer/amount) │  │
-│  └────────────────────┘ └──────────────────┘ │        │  │ • Automatic split distribution     │  │
+│  ┌─────────────────────────────────────────┐ │        │  │ Natural Language Voice Logger      │  │
+│  │ group_messages & activity_logs          │ │        │  │ • Entity extraction (payer/amount) │  │
+│  └─────────────────────────────────────────┘ │        │  │ • Automatic split distribution     │  │
 │                                              │        │  └────────────────────────────────────┘  │
 │  • Parameterized queries (SQLi Protection)   │        │  ┌────────────────────────────────────┐  │
 │  • Resilient connection pool management      │        │  │ Tone-Adaptive Payment Reminders    │  │
@@ -210,10 +211,10 @@ FairTab is an advanced, full-stack collaborative finance and expense-sharing pla
 └────────────────────────────────┘ │
                                    │
 ┌──────────────────────────────────┴─────┐
-│  disputes & dispute_comments           │
+│  group_messages & activity_logs        │
 ├────────────────────────────────────────┤
-│ id (PK), group_id (FK), expense_id (FK)│
-│ raised_by_id, reason, status           │
+│ id (PK), group_id (FK), sender_id (FK) │
+│ text, type, linked_expense_id, time    │
 └────────────────────────────────────────┘
 ```
 

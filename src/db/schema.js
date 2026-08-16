@@ -117,28 +117,6 @@ export const recurringRules = pgTable('recurring_rules', {
 });
 
 // ----------------------------------------------------
-// DISPUTES
-// ----------------------------------------------------
-export const disputes = pgTable('disputes', {
-  id: text('id').primaryKey(),
-  groupId: text('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
-  expenseId: text('expense_id').notNull().references(() => expenses.id, { onDelete: 'cascade' }),
-  raisedById: text('raised_by_id').notNull().references(() => members.id),
-  reason: text('reason').notNull(),
-  proposedChanges: text('proposed_changes'),
-  status: text('status').notNull().default('open'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
-
-export const disputeComments = pgTable('dispute_comments', {
-  id: text('id').primaryKey(),
-  disputeId: text('dispute_id').notNull().references(() => disputes.id, { onDelete: 'cascade' }),
-  memberId: text('member_id').notNull().references(() => members.id),
-  text: text('text').notNull(),
-  timestamp: timestamp('timestamp').defaultNow(),
-});
-
-// ----------------------------------------------------
 // MESSAGES & ACTIVITY
 // ----------------------------------------------------
 export const groupMessages = pgTable('group_messages', {
@@ -178,7 +156,6 @@ export const groupsRelations = relations(groups, ({ many }) => ({
   expenses: many(expenses),
   settlements: many(settlements),
   recurringRules: many(recurringRules),
-  disputes: many(disputes),
   messages: many(groupMessages),
   activityLogs: many(activityLogs),
 }));
@@ -188,5 +165,4 @@ export const expensesRelations = relations(expenses, ({ one, many }) => ({
   payer: one(members, { fields: [expenses.paidById], references: [members.id] }),
   splits: many(expenseSplits),
   items: many(expenseItems),
-  disputes: many(disputes),
 }));
