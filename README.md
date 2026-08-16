@@ -1,12 +1,79 @@
 # FairTab 📊 — Smart Collaborative Expense Splitting & Debt Simplification
 
-FairTab is a high-performance, full-stack collaborative finance platform engineered for real-time group expense management, receipt itemization via multimodal vision models, natural language voice logging, dispute arbitration workflows, and algorithmic minimum-cash-flow debt simplification.
+FairTab is an advanced, full-stack collaborative finance and expense-sharing platform engineered for roommates, travel groups, event organizers, and teams. It pairs real-time multi-user synchronization with Google Gemini AI intelligence, multimodal receipt itemization, voice-first expense logging, dispute resolution arbitration, and graph-based minimum-cash-flow debt simplification.
+
+---
+
+## ✨ Comprehensive Feature Matrix
+
+### 1. 👥 Multi-Group & Member Collaboration
+- **Dynamic Group Management**: Create customizable groups for trips, apartments, events, and projects with designated categories (Trip, Home, Event, Project, Other) and custom avatar icons.
+- **Unique Invite Codes**: Instantly join or invite friends using alphanumeric group invite codes.
+- **Member Profiles & Payment Rails**: Configure user profiles with avatars, color codes, phone numbers, **UPI IDs (`user@upi`)**, and **PayPal handles** for seamless peer-to-peer settlement.
+- **Multi-Currency Support**: Support for USD (`$`), EUR (`€`), INR (`₹`), GBP (`£`), JPY (`¥`), CAD (`$`), AUD (`$`), and CHF (`Fr.`).
+
+### 2. 🧾 Smart Multi-Modal Expense Ingestion
+- **5 Flexible Split Modes**:
+  - **Equal Split**: Automatically calculates exact per-person shares with rounding adjustment.
+  - **Exact Amounts**: Allocate custom fixed currency values per person with real-time balance validation.
+  - **Percentages**: Allocate percentages (must sum to 100%) with dynamic dollar share computation.
+  - **Custom Shares/Ratios**: Split by ratios (e.g., 2 shares for person A, 1 share for person B).
+  - **Itemized Assignments**: Assign specific line-items to designated members.
+- **📸 Gemini 3.7 Flash Multimodal Receipt OCR**:
+  - Upload or capture photos of itemized receipts, bills, and restaurant checks.
+  - AI extracts merchant name, date, line items with individual prices, tax, tip, and total.
+  - Interactive line-item assignment interface allows members to claim items they consumed with automated pro-rated tax and tip distribution.
+- **🎙️ Voice-First Natural Language Expense Logger**:
+  - Speak naturally (e.g., *"I paid 85 dollars for dinner at Olive Garden, split between me, Priya and Raj"*).
+  - Uses Web Speech API + Gemini AI structured extraction to detect title, total amount, category, payer, involved members, and split allocations with one-click review and commit.
+- **Preset Quick Prompts**: Quick voice/text templates for testing realistic expense scenarios with a single tap.
+
+### 3. 🧮 Minimum Cash Flow Graph Simplification
+- **Graph Debt Optimizer**: Implements greedy dual-queue debt settlement reduction algorithms ($\mathcal{O}(V \log V)$) that reduce complex $N$-party debts down to at most $V - 1$ optimal peer-to-peer transactions.
+- **Interactive Graph Visualizer**: View net creditor/debtor balance vectors, total group spend, and step-by-step settlement directives.
+- **Direct Settle-Up Rails**:
+  - Direct settlement modal supporting Cash, UPI, PayPal, Venmo, and Bank Transfer.
+  - **Live UPI QR Codes & Deep Links**: Generates native `upi://pay` deep links and QR codes with pre-filled payee VPA, amount, and reference notes for instant one-tap mobile payments.
+  - **PayPal.me Integration**: Direct payment links with pre-filled amounts.
+
+### 4. ⚡ Real-Time WebSocket Synchronization (Socket.io)
+- **Room-Isolated Live Updates**: Real-time room isolation (`group:<groupId>`) ensures instant updates across all connected clients for:
+  - New expenses and modifications
+  - Settlement confirmations
+  - Dispute filings and resolutions
+  - Group chat messages & voice recordings
+  - Real-time "user typing..." indicators
+
+### 5. 🤖 Gemini AI Financial Intelligence & Automations
+- **💡 AI Spending Velocity & Budget Forecaster**:
+  - Analyzes group spending velocity, category burn rates, and budget threshold warnings.
+  - Generates executive financial summaries, spending pattern observations, and actionable group savings recommendations.
+- **📢 Tone-Adaptive Smart Payment Reminders**:
+  - Draft contextualized reminder messages across 4 distinct AI tone profiles:
+    - **Friendly**: Warm, casual peer reminders.
+    - **Polite & Professional**: Crisp, formal notifications for colleagues.
+    - **Humorous / Witty**: Lighthearted memes, puns, and jokes for close friends.
+    - **Firm & Urgent**: Direct notices emphasizing budget deadlines.
+  - Auto-embeds direct payment links and copyable payloads for WhatsApp, SMS, or Slack.
+
+### 6. 🔄 Recurring Expenses & Subscription Manager
+- **Automated Recurring Ledger**: Manage recurring group expenses (Rent, Netflix, WiFi, Utilities, Groceries) across **Weekly**, **Bi-weekly**, **Monthly**, and **Yearly** intervals.
+- **Next Due Date Computation**: Tracks recurring payment cycles, days remaining, and active/paused state.
+- **One-Click Manual Trigger**: Force-post an upcoming cycle immediately or edit billing schedules.
+
+### 7. ⚖️ Dispute Arbitration & Resolution System
+- **Formal Dispute Filing**: Flag controversial or incorrect expenses with custom dispute reasons.
+- **Multi-Party Discussion Threads**: Real-time comment threads directly attached to contested expense items.
+- **Audited Resolutions**: Clear status tracking (`Open`, `In Discussion`, `Resolved`, `Dismissed`) with activity journaling.
+
+### 8. 💬 In-App Group Chat & Activity Audit Trail
+- **Real-Time Group Messenger**: Group-specific chat for discussing bills, planning trips, or coordinating settlements.
+- **Voice Memos / Audio Messages**: Record and play back audio messages with integrated audio player controls.
+- **Comprehensive Activity Log**: Chronological audit trail logging every expense addition, edit, deletion, settlement, and dispute resolution.
 
 ---
 
 ## 🏛️ System Architecture
-
-The following diagram illustrates the end-to-end architecture of FairTab, showcasing the interaction between the client presentation layer, the application gateway, real-time WebSocket channels, the relational persistence engine, and external AI vision/language pipelines.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -45,7 +112,7 @@ The following diagram illustrates the end-to-end architecture of FairTab, showca
                  ▼                                                               ▼
 ┌──────────────────────────────────────────────┐        ┌──────────────────────────────────────────┐
 │               DATABASE TIER                  │        │          AI & INFERENCE PIPELINES        │
-│          (Cloud SQL PostgreSQL)              │        │           (Gemini 2.5 Flash)             │
+│          (Cloud SQL PostgreSQL)              │        │           (Gemini 3.7 Flash)             │
 │                                              │        │                                          │
 │  ┌────────────────────┐ ┌──────────────────┐ │        │  ┌────────────────────────────────────┐  │
 │  │ groups & members   │ │ expenses & splits│ │        │  │ Multimodal Receipt OCR (Vision)    │  │
@@ -66,8 +133,6 @@ The following diagram illustrates the end-to-end architecture of FairTab, showca
 ---
 
 ## 🗄️ Relational Data Model (Cloud SQL PostgreSQL + Drizzle ORM)
-
-FairTab leverages a normalized relational database schema designed for ACID compliance, referential integrity, and cascading consistency across complex shared ledgers:
 
 ```text
 ┌───────────────────────┐
@@ -156,35 +221,11 @@ FairTab leverages a normalized relational database schema designed for ACID comp
 └────────────────────────────────────────┘
 ```
 
-### Key Schema Design Tenets
-1. **Foreign Key Cascade Strategies**: Deleting an expense cascades to its granular `expense_splits`, `expense_items`, and associated `disputes` to eliminate orphaned balance records.
-2. **Flexible Splitting Models**: Supports five concurrent split paradigms: Equal, Exact Currency Amounts, Percentage Ratios, Custom Weights/Shares, and Itemized Line-Item Assignments.
-3. **Audit Trail & Event Journaling**: Every mutation is logged in `activity_logs` with timestamps, actor IDs, and human-readable mutation descriptions.
-
----
-
-## ⚡ Real-Time Synchronization Engine (Socket.io)
-
-To ensure zero-latency multi-user collaboration across roommates or traveling companions, FairTab implements an event-driven WebSocket layer built with Socket.io.
-
-### Room Isolation Topology
-- Clients join isolated channel rooms scoped to the active group: `group:${groupId}`.
-- Prevents cross-group data leakage and optimizes broadcast fan-out.
-
-### Event Lifecycle Workflow
-1. **Client Action**: User submits an expense, settles a balance, or posts a message.
-2. **Server Mutation**: Express route handler performs an atomic PostgreSQL transaction.
-3. **Real-Time Broadcast**: The server dispatches the updated entity to all room subscribers:
-   ```ts
-   io.to(`group:${groupId}`).emit('expense_added', newExpense);
-   ```
-4. **Reactive Client Ingestion**: Subscribed React clients receive the event, update their local `AppContext` state in $O(1)$, and re-render debt calculations instantly without requiring manual page refreshes.
-
 ---
 
 ## 🧮 Algorithmic Engine: Minimum Cash Flow Graph Simplification
 
-One of the platform's core computational components is its debt simplification engine, which reduces an $N$-person tangled web of bilateral debts into the minimum possible number of settlement transactions.
+FairTab's debt simplification engine reduces an $N$-person tangled web of bilateral debts into the minimum possible number of settlement transactions:
 
 ```text
 [ UN-SIMPLIFIED BILATERAL DEBTS ]              [ SIMPLIFIED TRANSACTIONS (O(V)) ]
@@ -202,7 +243,6 @@ One of the platform's core computational components is its debt simplification e
 
 ### Mathematical Formulation
 1. **Net Balance Vector Calculation**:
-   For every member $u \in V$:
    $$\text{Net}(u) = \sum_{e \in \text{Paid}} \text{Amount}(e) - \sum_{e \in \text{Owed}} \text{Split}(e) + \sum_{s \in \text{Sent}} \text{Settlement}(s) - \sum_{s \in \text{Received}} \text{Settlement}(s)$$
 
 2. **Dual-Queue Greedy Settlement Matching**:
@@ -211,96 +251,48 @@ One of the platform's core computational components is its debt simplification e
    - Settle $\min(|D_{\max}|, C_{\max})$ directly between them.
    - Update remaining balances and repeat until all balances reach 0.
 
-### Complexity Characteristics
-- **Time Complexity**: $\mathcal{O}(V \log V)$ using priority heaps (where $V$ is the number of group members).
-- **Space Complexity**: $\mathcal{O}(V)$ for storing balance vectors and queue states.
-- **Edge Reduction**: Reduces an arbitrary directed graph with up to $\mathcal{O}(V^2)$ debt edges down to at most $V - 1$ total transactions.
-
----
-
-## 🧠 AI Subsystems & Gemini 2.5 Flash Pipelines
-
-FairTab integrates server-side Gemini 2.5 Flash models to streamline data entry, itemization, and communication:
-
-```text
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   GEMINI AI FEATURE MATRIX                                       │
-├──────────────────────────┬─────────────────────────────────────┬─────────────────────────────────┤
-│ Capability               │ Input Modality                      │ Output Schema / Artifact        │
-├──────────────────────────┼─────────────────────────────────────┼─────────────────────────────────┤
-│ Multimodal Receipt OCR   │ Raw JPEG/PNG image (Base64)         │ Structured JSON: Merchant, date,│
-│                          │                                     │ line items, subtotal, tax, tip  │
-├──────────────────────────┼─────────────────────────────────────┼─────────────────────────────────┤
-│ NLP Voice Logger         │ Audio transcript string             │ Extracted Title, Amount, Payer, │
-│                          │                                     │ Category, and Split allocation  │
-├──────────────────────────┼─────────────────────────────────────┼─────────────────────────────────┤
-│ Tone-Aware Reminders     │ Debtor, Creditor, Amount, Tone      │ Contextualized payment reminder │
-│                          │ (Friendly, Professional, Urgency)   │ message with UPI/PayPal payload │
-├──────────────────────────┼─────────────────────────────────────┼─────────────────────────────────┤
-│ Spending Velocity Engine │ Historical ledger time-series       │ Velocity index, budget burn rate│
-│                          │                                     │ and risk warnings               │
-└──────────────────────────┴─────────────────────────────────────┴─────────────────────────────────┘
-```
-
-### 1. Multimodal OCR Line-Item Extraction
-- Ingests physical receipt photographs directly through the camera or file upload.
-- Employs strict JSON-schema enforcement to extract item names, individual prices, tax rates, and tips.
-- Powers interactive drag-and-drop item assignments where individuals claim only their consumed items.
-
-### 2. Natural Language Voice-to-Expense Parser
-- Accepts voice transcripts from browser SpeechRecognition (e.g., *"Alex paid forty-five dollars for dinner yesterday split between Sam and Maria"*).
-- Disambiguates group member names using phonetic and substring heuristics against active group rosters.
-
-### 3. Tone-Adaptive Payment Reminders with Payment Deep-Links
-- Generates customizable payment reminders across selectable emotional tones:
-  - **Friendly**: Casual, non-confrontational peer reminders.
-  - **Polite / Professional**: Crisp, formal notifications for colleagues.
-  - **Humorous**: Lighthearted memes and puns for close friends.
-  - **Firm / Urgent**: Direct notices emphasizing impending budget deadlines.
-- Automatically injects **UPI payment deep-links** (`upi://pay?pa=...&am=...`) and **PayPal links** for one-tap settlement.
-
 ---
 
 ## 📁 Repository Directory Structure
 
 ```text
-├── src/                          # 🎨 CLIENT-SIDE PRESENTATION (React 19 + TypeScript + Tailwind)
+├── src/                          # 🎨 CLIENT-SIDE PRESENTATION (React 19 + Tailwind CSS)
 │   ├── components/               # Modular UI Components & Modals
-│   │   ├── AIInsightsView.tsx    # Spending velocity & AI budget forecasting
-│   │   ├── BalanceSummaryCards.tsx # Net balance indicators & budget limits
-│   │   ├── DebtSimplificationView.tsx # Graph visualization & settlement routing
-│   │   ├── DisputesView.tsx      # Multi-party arbitration threads & resolution
-│   │   ├── ExpenseList.tsx       # Searchable, filterable expense ledger
-│   │   ├── ExpenseModal.tsx      # Comprehensive expense modal (5 split modes)
-│   │   ├── GroupChatView.tsx     # Real-time chat, voice notes & activity logs
-│   │   ├── Navbar.tsx            # Header, user switch & currency selector
-│   │   ├── NewGroupModal.tsx     # Group creation & invite code joining
-│   │   ├── ReceiptScannerModal.tsx # Gemini OCR & interactive item assignment
-│   │   ├── RecurringExpensesView.tsx # Automated scheduled bill manager
-│   │   ├── SettleUpModal.tsx     # UPI deep links, QR codes & settlement logger
-│   │   ├── SmartReminderModal.tsx # AI reminder generator across 4 tone profiles
-│   │   ├── ToastContainer.tsx    # Non-blocking notification system
-│   │   └── VoiceLoggerModal.tsx  # Natural speech transcription & parsing
+│   │   ├── AIInsightsView.jsx    # Spending velocity & AI budget forecasting
+│   │   ├── BalanceSummaryCards.jsx # Net balance indicators & budget limits
+│   │   ├── DebtSimplificationView.jsx # Graph visualization & settlement routing
+│   │   ├── DisputesView.jsx      # Multi-party arbitration threads & resolution
+│   │   ├── ExpenseList.jsx       # Searchable, filterable expense ledger
+│   │   ├── ExpenseModal.jsx      # Comprehensive expense modal (5 split modes)
+│   │   ├── GroupChatView.jsx     # Real-time chat, voice notes & activity logs
+│   │   ├── Navbar.jsx            # Header, user switch & currency selector
+│   │   ├── NewGroupModal.jsx     # Group creation & invite code joining
+│   │   ├── ReceiptScannerModal.jsx # Gemini OCR & interactive item assignment
+│   │   ├── RecurringExpensesView.jsx # Automated scheduled bill manager
+│   │   ├── SettleUpModal.jsx     # UPI deep links, QR codes & settlement logger
+│   │   ├── SmartReminderModal.jsx # AI reminder generator across 4 tone profiles
+│   │   ├── ToastContainer.jsx    # Non-blocking notification system
+│   │   └── VoiceLoggerModal.jsx  # Natural speech transcription & parsing
 │   ├── context/
-│   │   └── AppContext.tsx        # Central state store & Socket.io integration
+│   │   └── AppContext.jsx        # Central state store & Socket.io integration
 │   ├── lib/
-│   │   └── socket.ts             # Singleton Socket.io client connector
+│   │   └── socket.js             # Singleton Socket.io client connector
 │   ├── db/                       # Drizzle ORM Schema & Database Connection
-│   │   ├── schema.ts             # PostgreSQL tables, relations & type definitions
-│   │   ├── index.ts              # pg.Pool connection pool & Drizzle instance
-│   │   └── drizzle.config.ts     # Drizzle Kit CLI migration configuration
+│   │   ├── schema.js             # PostgreSQL tables, relations & type definitions
+│   │   ├── index.js              # pg.Pool connection pool & Drizzle instance
+│   │   └── drizzle.config.js     # Drizzle Kit CLI migration configuration
 │   ├── utils/
-│   │   └── debtSimplification.ts # Greedy minimum cash flow graph algorithm
-│   ├── types.ts                  # Shared TypeScript interfaces & models
-│   ├── App.tsx                   # Master responsive viewport & navigation tabs
-│   ├── main.tsx                  # React DOM bootstrap entry point
+│   │   └── debtSimplification.js # Greedy minimum cash flow graph algorithm
+│   ├── types.js                  # Shared data models & default structures
+│   ├── App.jsx                   # Master responsive viewport & navigation tabs
+│   ├── main.jsx                  # React DOM bootstrap entry point
 │   └── index.css                 # Tailwind CSS directives
 │
 ├── server/                       # ⚙️ SERVER-SIDE APPLICATION TIER (Express.js + Node.js)
 │   ├── app.ts                    # Express application factory & middleware setup
 │   ├── routes.ts                 # REST API endpoints & Socket.io broadcasters
 │   ├── db-service.ts             # Relational data access layer & database queries
-│   └── gemini.ts                 # Gemini 2.5 Flash integration pipelines
+│   └── gemini.ts                 # Gemini 3.7 Flash integration pipelines
 │
 ├── server.ts                     # Root HTTP + Socket.io server bootstrap
 ├── package.json                  # Dependencies & script declarations
@@ -313,11 +305,10 @@ FairTab integrates server-side Gemini 2.5 Flash models to streamline data entry,
 ## 🚀 Quick Start Guide
 
 ### 1. Prerequisites
-- **Node.js**: v18.0.0 or higher ([Download Node.js](https://nodejs.org/))
+- **Node.js**: v18.0.0 or higher
 - **npm** / **yarn** / **pnpm**
-- **Git**
 
-### 2. Clone & Install
+### 2. Installation
 ```bash
 git clone https://github.com/YOUR_USERNAME/FairTab.git
 cd FairTab
@@ -346,13 +337,13 @@ SQL_DB_NAME="fairtab_db"
 ```bash
 npm run dev
 ```
-Open your browser at `http://localhost:3000`.
+Open `http://localhost:3000` in your browser.
 
 ---
 
-## 🛡️ Security & Reliability Architecture
+## 🛡️ Security & Reliability
 
-- **Server-Side API Key Isolation**: All Gemini AI keys and Cloud SQL credentials reside exclusively on the server runtime, protected against client-side inspection.
-- **Connection Pool Resilience**: PostgreSQL connections are managed via a persistent `pg.Pool` with global caching and error traps to prevent container cold-start bottlenecks.
-- **Parameterized Query Safety**: Built with Drizzle ORM to ensure complete protection against SQL injection attacks.
-- **Graceful Offline Fallbacks**: In environments where external AI APIs are not provisioned, local rule-based NLP and OCR heuristic parsers ensure unbroken application functionality.
+- **Server-Side API Key Protection**: Gemini AI keys and database credentials reside exclusively on the server runtime.
+- **Connection Pool Resilience**: PostgreSQL connections are managed via a persistent `pg.Pool` with global caching and error traps.
+- **Parameterized Query Safety**: Built with Drizzle ORM to protect against SQL injection vulnerabilities.
+- **Graceful Fallbacks**: Local rule-based NLP and OCR heuristic parsers provide uninterrupted functionality if AI API keys are unset.
