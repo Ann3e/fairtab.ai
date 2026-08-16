@@ -5,7 +5,6 @@ import { BalanceSummaryCards } from './components/BalanceSummaryCards.jsx';
 import { ExpenseList } from './components/ExpenseList.jsx';
 import { DebtSimplificationView } from './components/DebtSimplificationView.jsx';
 import { RecurringExpensesView } from './components/RecurringExpensesView.jsx';
-import { DisputesView } from './components/DisputesView.jsx';
 import { GroupChatView } from './components/GroupChatView.jsx';
 import { AIInsightsView } from './components/AIInsightsView.jsx';
 import { ExpenseModal } from './components/ExpenseModal.jsx';
@@ -16,7 +15,7 @@ import { SmartReminderModal } from './components/SmartReminderModal.jsx';
 import { NewGroupModal } from './components/NewGroupModal.jsx';
 import { ToastContainer } from './components/ToastContainer.jsx';
 import { 
-  Receipt, Zap, Repeat, MessageSquareWarning, 
+  Receipt, Zap, Repeat, 
   MessageSquare, Sparkles, Loader2 
 } from 'lucide-react';
 
@@ -24,7 +23,6 @@ const MainContent = () => {
   const { 
     activeGroup, 
     isLoading, 
-    disputes, 
     expenses, 
     messages,
     debtResult
@@ -40,8 +38,6 @@ const MainContent = () => {
       </div>
     );
   }
-
-  const openDisputesCount = disputes ? disputes.filter(d => d.status === 'open').length : 0;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
@@ -98,23 +94,6 @@ const MainContent = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('disputes')}
-            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
-              activeTab === 'disputes'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-850 border border-slate-800'
-            }`}
-          >
-            <MessageSquareWarning className="w-4 h-4 text-amber-400" />
-            <span>Disputes</span>
-            {openDisputesCount > 0 && (
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-extrabold animate-pulse">
-                {openDisputesCount}
-              </span>
-            )}
-          </button>
-
-          <button
             onClick={() => setActiveTab('chat')}
             className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
               activeTab === 'chat'
@@ -149,7 +128,6 @@ const MainContent = () => {
         {activeTab === 'expenses' && <ExpenseList />}
         {activeTab === 'debts' && <DebtSimplificationView />}
         {activeTab === 'recurring' && <RecurringExpensesView />}
-        {activeTab === 'disputes' && <DisputesView />}
         {activeTab === 'chat' && <GroupChatView />}
         {activeTab === 'insights' && <AIInsightsView />}
 

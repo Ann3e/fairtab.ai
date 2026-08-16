@@ -462,6 +462,28 @@ export async function createDispute(groupId, data) {
 
   await db.update(expenses).set({ disputeStatus: 'disputed' }).where(eq(expenses.id, data.expenseId));
 
+  // Find expense title for helpful chat notification
+  const [exp] = await db.select().from(expenses).where(eq(expenses.id, data.expenseId));
+  const expTitle = exp ? exp.title : 'Expense';
+
+  // Automatically post to Group Chat and Activity Log
+  await db.insert(groupMessages).values({
+    id: `msg_${Date.now()}`,
+    groupId,
+    senderId: data.raisedById,
+    text: `⚠️ Questioned split on "${expTitle}": "${data.reason}"${data.proposedChanges ? ` (Proposal: ${data.proposedChanges})` : ''}`,
+    type: 'text',
+    linkedExpenseId: data.expenseId,
+  });
+
+  await db.insert(activityLogs).values({
+    id: `act_${Date.now()}`,
+    groupId,
+    actorId: data.raisedById,
+    actionType: 'expense_disputed',
+    details: `questioned the split for "${expTitle}": "${data.reason}"`,
+  });
+
   const list = await getDisputesByGroupId(groupId);
   return list.find(d => d.id === dispId);
 }
@@ -496,6 +518,26 @@ export async function resolveDispute(groupId, dispId, status, updatedSplits) {
         });
       }
     }
+
+    const [exp] = await db.select().from(expenses).where(eq(expenses.id, disp.expenseId));
+    const expTitle = exp ? exp.title : 'Expense';
+
+    await db.insert(groupMessages).values({
+      id: `msg_${Date.now()}`,
+      groupId,
+      senderId: 'system',
+      text: `✅ Split dispute on "${expTitle}" marked as ${status}.`,
+      type: 'system',
+      linkedExpenseId: disp.expenseId,
+    });
+
+    await db.insert(activityLogs).values({
+      id: `act_${Date.now()}`,
+      groupId,
+      actorId: disp.raisedById,
+      actionType: 'dispute_resolved',
+      details: `resolved split inquiry on "${expTitle}" (${status})`,
+    });
   }
 
   const list = await getDisputesByGroupId(groupId);

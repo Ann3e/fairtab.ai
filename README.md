@@ -61,15 +61,11 @@ FairTab is an advanced, full-stack collaborative finance and expense-sharing pla
 - **Next Due Date Computation**: Tracks recurring payment cycles, days remaining, and active/paused state.
 - **One-Click Manual Trigger**: Force-post an upcoming cycle immediately or edit billing schedules.
 
-### 7. ⚖️ Dispute Arbitration & Resolution System
-- **Formal Dispute Filing**: Flag controversial or incorrect expenses with custom dispute reasons.
-- **Multi-Party Discussion Threads**: Real-time comment threads directly attached to contested expense items.
-- **Audited Resolutions**: Clear status tracking (`Open`, `In Discussion`, `Resolved`, `Dismissed`) with activity journaling.
-
-### 8. 💬 In-App Group Chat & Activity Audit Trail
+### 7. 💬 In-App Group Chat, Dispute Coordination & Activity Log
 - **Real-Time Group Messenger**: Group-specific chat for discussing bills, planning trips, or coordinating settlements.
+- **Integrated Split Inquiries & Disputes**: Question or dispute any expense split directly from the ledger; automatically tags the expense and notifies members in the Group Chat.
 - **Voice Memos / Audio Messages**: Record and play back audio messages with integrated audio player controls.
-- **Comprehensive Activity Log**: Chronological audit trail logging every expense addition, edit, deletion, settlement, and dispute resolution.
+- **Comprehensive Activity Log**: Chronological audit trail logging every expense addition, edit, deletion, settlement, and split adjustment.
 
 ---
 
@@ -261,7 +257,6 @@ FairTab's debt simplification engine reduces an $N$-person tangled web of bilate
 │   │   ├── AIInsightsView.jsx    # Spending velocity & AI budget forecasting
 │   │   ├── BalanceSummaryCards.jsx # Net balance indicators & budget limits
 │   │   ├── DebtSimplificationView.jsx # Graph visualization & settlement routing
-│   │   ├── DisputesView.jsx      # Multi-party arbitration threads & resolution
 │   │   ├── ExpenseList.jsx       # Searchable, filterable expense ledger
 │   │   ├── ExpenseModal.jsx      # Comprehensive expense modal (5 split modes)
 │   │   ├── GroupChatView.jsx     # Real-time chat, voice notes & activity logs
@@ -289,14 +284,15 @@ FairTab's debt simplification engine reduces an $N$-person tangled web of bilate
 │   └── index.css                 # Tailwind CSS directives
 │
 ├── server/                       # ⚙️ SERVER-SIDE APPLICATION TIER (Express.js + Node.js)
-│   ├── app.ts                    # Express application factory & middleware setup
-│   ├── routes.ts                 # REST API endpoints & Socket.io broadcasters
-│   ├── db-service.ts             # Relational data access layer & database queries
-│   └── gemini.ts                 # Gemini 3.7 Flash integration pipelines
+│   ├── app.js                    # Express application factory & middleware setup
+│   ├── routes.js                 # REST API endpoints & Socket.io broadcasters
+│   ├── db-service.js             # Relational data access layer & database queries
+│   ├── store.js                  # In-memory mock and state store
+│   └── gemini.js                 # Gemini 3.7 Flash integration pipelines
 │
-├── server.ts                     # Root HTTP + Socket.io server bootstrap
+├── server.js                     # Root HTTP + Socket.io server bootstrap
 ├── package.json                  # Dependencies & script declarations
-├── vite.config.ts                # Vite frontend bundler configuration
+├── vite.config.js                # Vite frontend bundler configuration
 └── metadata.json                 # AI Studio capability configuration
 ```
 
